@@ -1,0 +1,2 @@
+# tradeSimulator
+to simulate trading
