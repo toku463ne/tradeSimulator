@@ -1,0 +1,16 @@
+wheel
+pymysql
+yfinance
+pandas_datareader
+pandas
+numpy
+sqlalchemy
+falcon
+xlrd
+path
+scikit-learn
+matplotlib
+jupyter
+pyopenssl
+gunicorn
+tzlocal

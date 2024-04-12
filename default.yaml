@@ -1,0 +1,21 @@
+---
+mysql:
+  host: localhost
+  db: tradesimulator
+  test_db: tradesimulator_test
+  user: tradeuser
+  password: tradepass
+  conn_retry: 5
+
+data_sources:
+  - yf
+  - mysql
+  - onmem
+
+data_download_interval: 3
+
+pyapi:
+  host: localhost
+  port: 9001
+
+tmp_dir: /tmp
