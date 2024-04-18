@@ -19,3 +19,7 @@ pyapi:
   port: 9001
 
 tmp_dir: /tmp
+
+logging:
+  logdir: /tmp
+  filename: tradesimulator.log

@@ -28,12 +28,17 @@ class Ticker(object):
             self.updb.createTable("tick_tableeps", "tick_tableeps")
 
         self.err = TICKER_ERR_NONE
+        self.eps = []
         
-        self.initData()
+        #self.initData()
 
     
-    def initData(self):
-        self._resetData(self.startep, self.endep, use_master=self.use_master)
+    def initData(self, ohlcv=[]):
+        if len(ohlcv) == 0:
+            self._resetData(self.startep, self.endep, use_master=self.use_master)
+        else:
+            self.calcTickValues(ohlcv)
+
     
 
     def ensureTable(self, tableName, tableTemplateName="", replacements={}):
@@ -146,7 +151,7 @@ values('%s', '%s', %d, %d, '%s', '%s')""" % (self.table, self.codename, startep,
 
     def getPrevIndex(self, ep, searchStartI=0):
         eps = self.eps
-        for i in range(searchStartI, len(ep)):
+        for i in range(searchStartI, len(eps)):
             if ep < eps[i]:
                 return i-1
             if ep == eps[i]:
@@ -162,13 +167,13 @@ values('%s', '%s', %d, %d, '%s', '%s')""" % (self.table, self.codename, startep,
                 self._resetData(ep)
             if self.tick(ep) == False:
                 raise Exception("No data for epoch=%d" % ep)
-        return self.getData()  
+        return self.getData(i=self.getPrevIndex(ep))  
 
 
 
     def getPostIndex(self, ep, searchStartI=0):
         eps = self.eps
-        for i in range(searchStartI, len(ep)):
+        for i in range(searchStartI, len(eps)):
             if ep < eps[i]:
                 return i
             if ep == eps[i]:
@@ -193,6 +198,9 @@ values('%s', '%s', %d, %d, '%s', '%s')""" % (self.table, self.codename, startep,
         self.index -= rmi
 
     def tick(self, ep=0):
+        if len(self.eps) == 0:
+            self.initData()
+
         if self.err == TICKER_ERR_EOF:
             self._setCurrData(-1)
             return False

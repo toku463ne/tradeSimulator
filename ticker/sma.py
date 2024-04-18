@@ -3,20 +3,27 @@ import lib.indicators as libind
 
 
 class SMA(Ticker):
-    def initData(self, ohlcv, span=20):
-        (ep, dt, _, _, _, p, _) = ohlcv
-        x, start_i = libind.sma(p, span)
+    def __init__(self, config):
+        super(SMA, self).__init__(config)
+        self.span = config.get("span", 5)
+
+        #self.initData()
+
+    def initData(self, ohlcv=[]):
+        super(SMA, self).initData(ohlcv)
+        p = self.c
+        x, start_i = libind.sma(p, self.span)
         self.p = x
-        self.ep = ep[start_i:]
-        self.dt = dt[start_i:]
-        self.span = span
+        self.eps = self.eps[start_i:]
+        self.dt = self.dt[start_i:]
+        
         
     def getData(self, i, n=0):
         if n == 1 and i >= 0:
-            return (self.ep[i], self.dt[i], self.p[i])
+            return (self.eps[i], self.dt[i], self.p[i])
         elif i >= 0:
             j = i-n+1
             i = i+1
-            return (self.ep[j:i], self.dt[j:i], self.p[j:i])
+            return (self.eps[j:i], self.dt[j:i], self.p[j:i])
         else:
             return (0,None, 0)

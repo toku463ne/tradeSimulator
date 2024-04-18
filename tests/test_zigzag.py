@@ -171,6 +171,7 @@ class TestZigzag(unittest.TestCase):
             "use_master": False
         }
         t = Zigzag(config)
+        t.tick()
         #t = Zigzag("2160.T", "D", st, ed, size=5, buffNbars=0)
         self.assertEqual(t.zz_dt[3].month, 7)
         self.assertEqual(t.zz_dt[3].day, 4)
@@ -217,6 +218,7 @@ class TestZigzag(unittest.TestCase):
             "use_master": False
         }     
         t = Zigzag(config)
+        t.tick()
         #t = Zigzag("^N225", "D", st, ed, size=5)
         self.assertEqual(t.zz_dt[3].month, 10)
         self.assertEqual(t.zz_dt[3].day, 13)
@@ -244,6 +246,7 @@ class TestZigzag(unittest.TestCase):
             "use_master": False
         }     
         t = Zigzag(config)
+        t.tick()
         #t = Zigzag("^N225", "D", st, ed, size=5)
         self.assertEqual(t.zz_dt[1].month, 2)
         self.assertEqual(t.zz_dt[1].day, 26)
@@ -271,6 +274,7 @@ class TestZigzag(unittest.TestCase):
             "use_master": False
         }     
         t = Zigzag(config)
+        t.tick()
         #t = Zigzag("1973.T", "D", st, ed, size=5)
         self.assertEqual(t.zz_dt[1].month, 4)
         self.assertEqual(t.zz_dt[1].day, 24)
@@ -296,6 +300,7 @@ class TestZigzag(unittest.TestCase):
             "use_master": False
         }     
         t = Zigzag(config)
+        t.tick()
         #t = Zigzag("^N225", "D", st, ed, size=5)
 
         ep = datetime(year=2021, month=11, day=11, hour=9).timestamp()

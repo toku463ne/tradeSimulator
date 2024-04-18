@@ -9,8 +9,9 @@ class Zigzag(Ticker):
     def __init__(self, config):
         super(Zigzag, self).__init__(config)
         
-        self.initAttrFromArgs(config, "size", 5)
-        self.initAttrFromArgs(config, "middle_size", 2)
+        self.size = config.get("size", 5)
+        self.middle_size = config.get("middle_size", 2)
+
         self.curr_zi = -1
         self.last_i = -1
         self.pos = 0
@@ -19,17 +20,16 @@ class Zigzag(Ticker):
         zzTableName = naming.getZigzagTableName(self.granularity, self.size, self.middle_size)
         self.ensureTable(zzTableName, "tick_zigzag")
 
-        if self.startep > 0 or self.endep > 0:
-            self.initData()
+        #if self.startep > 0 or self.endep > 0:
+        #    self.initData()
+        #self.initData()
         
         
 
     def _loadData(self, ohlcv, startep, endep):
         use_master = self.use_master
-        size = self.size
-        middle_size = self.middle_size
-        (ep, dt, o, h, l, c, v) = ohlcv
-        self.ep = ep
+        (eps, dt, o, h, l, c, v) = ohlcv
+        self.eps = eps
         self.dt = dt
         self.o = o
         self.h = h
@@ -91,7 +91,7 @@ and ep >= %d and ep <= %d""" % (self.table,
             load_db = True
 
 
-        self.ep = ep
+        self.eps = ep
         self.dt = dt
         self.o = o
         self.h = h
@@ -226,7 +226,7 @@ values('%s', %d, '%s', %f, %f, %d, %d);""" % (self.table,
             self.err = TICKER_NODATA
             return (0,None,0,0,0)
 
-        ep = self.ep
+        eps = self.eps
         dt = self.dt
         h = self.h
         l = self.l
@@ -245,13 +245,13 @@ values('%s', %d, '%s', %f, %f, %d, %d);""" % (self.table,
             if self.zz_dirs[-1] == 2:
                 min_peak = 0
                 min_j = -1
-                for j in range(tick_indexes[curr_zi]+1, len(ep)):
+                for j in range(tick_indexes[curr_zi]+1, len(eps)):
                     if min_peak == 0 or l[j] < min_peak:
                         min_peak = l[j]
                         min_j = j
                 if l[min_j] > min(l[min_j-size+1:min_j]):
                     return False, last_peak_i, last_peak, last_dir
-                if min_j + self.middle_size < len(ep):
+                if min_j + self.middle_size < len(eps):
                     last_peak = min_peak
                     last_dir = -1
                     last_peak_i = min_j
@@ -259,13 +259,13 @@ values('%s', %d, '%s', %f, %f, %d, %d);""" % (self.table,
             if self.zz_dirs[-1] == -2:
                 max_peak = 0
                 max_j = -1
-                for j in range(tick_indexes[-1]+1, len(ep)):
+                for j in range(tick_indexes[-1]+1, len(eps)):
                     if max_peak == 0 or h[j] > max_peak:
                         max_peak = h[j]
                         max_j = j
                 if h[max_j] < max(h[max_j-size+1:max_j]):
                     return False, last_peak_i, last_peak, last_dir
-                if max_j + self.middle_size < len(ep):
+                if max_j + self.middle_size < len(eps):
                     last_peak = max_peak
                     last_dir = 1
                     last_peak_i = max_j
@@ -284,7 +284,7 @@ values('%s', %d, '%s', %f, %f, %d, %d);""" % (self.table,
                 need_change, last_peak_i, last_peak, last_dir = checkIfNeedChangeLastPeak()
                 if need_change:
                     curr_zj += 1
-                    return (self.zz_ep[curr_zj:curr_zi+1] + [ep[last_peak_i]], 
+                    return (self.zz_ep[curr_zj:curr_zi+1] + [eps[last_peak_i]], 
                             self.zz_dt[curr_zj:curr_zi+1] + [dt[last_peak_i]], 
                             self.zz_dirs[curr_zj:curr_zi+1] + [last_dir], 
                             self.zz_prices[curr_zj:curr_zi+1] + [last_peak],
@@ -338,7 +338,7 @@ values('%s', %d, '%s', %f, %f, %d, %d);""" % (self.table,
                 if zz_mode == ZZ_MODE_RETURN_ONLY_LAST_MIDDLE:
                     need_change, last_peak_i, last_peak, last_dir = checkIfNeedChangeLastPeak()
                     if need_change:
-                        return (self.zz_ep[-j+2:] + [ep[last_peak_i]], 
+                        return (self.zz_ep[-j+2:] + [eps[last_peak_i]], 
                             self.zz_dt[-j+2:] + [dt[last_peak_i]], 
                             self.zz_dirs[-j+2:] + [last_dir], 
                             self.zz_prices[-j+2:] + [last_peak],
@@ -351,7 +351,7 @@ values('%s', %d, '%s', %f, %f, %d, %d);""" % (self.table,
     def getLastMiddlePeak(self, last_i=-1):
         if last_i == -1:
             last_i = self.curr_zi
-        eps = self.ep
+        eps = self.eps
         h = self.h
         l = self.l
         last_dir = self.zz_dirs[last_i]

@@ -1,3 +1,5 @@
+import pandas as pd
+
 BLOCK_SIZE = 10000
 BUFFER_BARS = 10
 import env
@@ -74,10 +76,11 @@ class DataGetter(object):
             endep2 = startep + self.unitsecs*BLOCK_SIZE
             if endep2 > endep:
                 endep2 = endep
-            if data == None:
+            if data is None:
                 data = self.childDG.getPrices(startep, endep2, waitDownload)
             else:
-                data = data.append(self.childDG.getPrices(startep, endep2, waitDownload))
+                #data = data.append(self.childDG.getPrices(startep, endep2, waitDownload))
+                data = pd.concat([data, self.childDG.getPrices(startep, endep2, waitDownload)], ignore_index=True)
             if endep2 >= endep:
                 break
         return data

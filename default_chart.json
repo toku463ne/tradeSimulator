@@ -1,0 +1,16 @@
+{
+    "codename": "^N225",
+    "granularity": "D",
+    "start_date": "2023-11-01",
+    "end_date": "2024-04-01",
+    "indicators": {
+        "sma20": {
+            "span": 20,
+            "type": "sma"
+        },
+        "zigzag5": {
+            "size": 5,
+            "type": "zigzag"
+        }
+    }
+}
