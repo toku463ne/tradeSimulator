@@ -1,7 +1,9 @@
+import lib.tradelib as tradelib
 
 class TimeTicker(object):
-    def __init__(self, interval, startep, endep):
-        self.interval = interval
+    def __init__(self, granularity, startep, endep):
+        self.granularity = granularity
+        self.interval = tradelib.getUnitSecs(granularity)
         self.startep = startep
         self.endep = endep
         self.epoch = startep

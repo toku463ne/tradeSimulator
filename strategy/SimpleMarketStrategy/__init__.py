@@ -1,5 +1,4 @@
 from strategy import Strategy
-import env
 import lib.tradelib as tradelib
 from ticker import Ticker
 from consts import *

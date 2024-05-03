@@ -8,7 +8,7 @@ def sma(p, span=20):
     return x.tolist(), date_start_index
 
 
-def zigzag(ep, dt, h, l, v, size=5, middle_size=2, peak_num=0):
+def zigzag(eps, dt, h, l, v, size=5, middle_size=2, peak_num=0):
     peakidxs = []
     dirs = []
 
@@ -39,7 +39,7 @@ def zigzag(ep, dt, h, l, v, size=5, middle_size=2, peak_num=0):
             peakidxs.append(i)
             dirs.append(newdir)
     
-    for i in range(len(ep)-size*2, 0, -1):
+    for i in range(len(eps)-size*2, 0, -1):
         midi = i + size
         midh = h[midi]
         midl = l[midi]
@@ -88,7 +88,7 @@ def zigzag(ep, dt, h, l, v, size=5, middle_size=2, peak_num=0):
                 cnts += cnt+1
                 cnt += 1
             vl = s/cnts
-        newep.append(ep[idx])
+        newep.append(eps[idx])
         newdt.append(dt[idx])
         newv.append(vl)
         if i > 0:
@@ -97,4 +97,45 @@ def zigzag(ep, dt, h, l, v, size=5, middle_size=2, peak_num=0):
     
     return newep, newdt, dirs, prices, newv, dists, date_start_index
 
+
+def ichimoku(h, l, c, tenkan_span=9, kijun_span=26, senkou1_span=26, senkou2_span=52, chikou_span=26):
+    if len(c) < senkou2_span:
+        raise Exception("Data size is too short")
+    
+    # Helper function to calculate moving averages and spans
+    def calculate_span(period, high_data, low_data):
+        return [np.max(high_data[i-period+1:i+1]) if i >= period-1 else None for i in range(len(high_data))],\
+               [np.min(low_data[i-period+1:i+1]) if i >= period-1 else None for i in range(len(low_data))]
+    
+    # Calculate Tenkan-sen (Conversion Line)
+    tenkan_sen_high, tenkan_sen_low = calculate_span(tenkan_span, h, l)
+    tenkan_sen = [(high + low) / 2 if high is not None and low is not None else None for high, low in zip(tenkan_sen_high, tenkan_sen_low)]
+    
+    # Calculate Kijun-sen (Base Line)
+    kijun_sen_high, kijun_sen_low = calculate_span(kijun_span, h, l)
+    kijun_sen = [(high + low) / 2 if high is not None and low is not None else None for high, low in zip(kijun_sen_high, kijun_sen_low)]
+    
+    # Calculate Senkou Span A (Leading Span A)
+    senkou1 = [(ts + ks) / 2 if ts is not None and ks is not None else None for ts, ks in zip(tenkan_sen, kijun_sen)]
+    senkou1 = [None] * senkou1_span + senkou1[:-senkou1_span]   # Shifted forward
+    
+    # Calculate Senkou Span B (Leading Span B)
+    senkou2_span_high, senkou2_span_low = calculate_span(senkou2_span, h, l)
+    senkou2 = [(high + low) / 2 if high is not None and low is not None else None for high, low in zip(senkou2_span_high, senkou2_span_low)]
+    senkou2_span_delay = int(senkou2_span / 2)
+    senkou2 = [None] * senkou2_span_delay + senkou2[:-senkou2_span_delay]  # Shifted forward
+    
+    # Calculate Chikou Span (Lagging Span)
+    chikou = c[chikou_span:] + [None] * chikou_span if len(c) > chikou_span else [None] * len(c)
+    
+    # Combine all spans into a single dictionary
+    ichimoku_data = {
+        "tenkan": tenkan_sen,
+        "kijun": kijun_sen,
+        "senkou1": senkou1,
+        "senkou2": senkou2,
+        "chikou": chikou
+    }
+    
+    return ichimoku_data
 

@@ -1,7 +1,7 @@
 import __init__
 import unittest
 from datetime import datetime
-import lib.data_import as imp
+import lib.data_import_postgres as imp
 
 class TestDataImport(unittest.TestCase):
     def test_random(self):

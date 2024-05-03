@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS trade_history (
     `codename` VARCHAR(50),
     `side` SMALLINT,
     `price` FLOAT,
-    `units` INT,
+    `units` FLOAT,
     `buy_offline` FLOAT,
     `buy_online` FLOAT,
     `sell_offline` FLOAT,

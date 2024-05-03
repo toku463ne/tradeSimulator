@@ -69,11 +69,11 @@ class Executor(object):
             msg = ""
             
             if side == SIDE_BUY:
-                if l < sl:
+                if sl > 0 and l < sl:
                     iswin = -1
                     msg = "stoploss"
                     price = sl 
-                elif h > tp:
+                elif tp > 0 and h > tp:
                     iswin = 1
                     msg = "takeprofit"
                     price = tp
@@ -84,11 +84,11 @@ class Executor(object):
                         iswin = -1
                     msg = "expired"
             if side == SIDE_SELL:
-                if h > sl:
+                if sl > 0 and h > sl:
                     iswin = -1
                     msg = "stoploss"
                     price = sl 
-                elif l < tp:
+                elif tp > 0 and l < tp:
                     iswin = 1
                     msg = "takeprofit"
                     price = tp

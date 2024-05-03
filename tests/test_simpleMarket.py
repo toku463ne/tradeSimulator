@@ -3,7 +3,6 @@ import __init__
 import unittest
 from strategy.SimpleMarketStrategy import SimpleMarketStrategy
 import lib
-import lib.tradelib as tradelib
 from time_ticker import TimeTicker
 from executor import Executor
 from trade_manager import TradeManager
@@ -18,7 +17,7 @@ class TestSimpleMarketStrategy(unittest.TestCase):
         "granularity": granularity, 
         "profit": profit}
         strategy = SimpleMarketStrategy(args)
-        ticker = TimeTicker(tradelib.getUnitSecs(granularity), st, ed)
+        ticker = TimeTicker(granularity, st, ed)
         executor = Executor()
         portforio = Portoforio("test_simplemarket", 1000000, 1000000)
         tm = TradeManager("market strategy", ticker, strategy, executor, portforio)

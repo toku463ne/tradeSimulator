@@ -1,4 +1,4 @@
-from data_getter.my_getter import MyGetter
+#from data_getter.my_getter import MyGetter
 from data_getter import DataGetter
 import lib.naming as naming
 import lib
@@ -8,7 +8,8 @@ class OnMemGetter(DataGetter):
             memSize=10000, extendSize=100):
         self.name = "onmem_getter_%s_%s" % (childDG.codename, childDG.granularity)
         self.tableName = naming.priceTable(childDG.codename, childDG.granularity, tableNamePrefix)
-        self.childDG = MyGetter(childDG, tableNamePrefix, is_dgtest=is_dgtest)
+        #self.childDG = MyGetter(childDG, tableNamePrefix, is_dgtest=is_dgtest)
+        self.childDG = childDG
         self.unitsecs = self.childDG.unitsecs
         self.codename = self.childDG.codename
         self.granularity = self.childDG.granularity

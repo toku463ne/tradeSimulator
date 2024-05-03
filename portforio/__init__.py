@@ -147,7 +147,7 @@ class Portoforio(object):
 codename, side, price, units, 
 buy_offline, buy_online, sell_offline, sell_online) 
 values('%s', %d, '%s', '%s',
-'%s', %d, %f, %d,
+'%s', %d, %f, %f,
 %f, %f, %f, %f)""" % (self.trade_name, h["epoch"], lib.epoch2str(h["epoch"]), h["orderId"],
 h["codename"], h["side"], h["price"], h["units"],
 h["buy_offline"], h["buy_online"], h["sell_offline"], h["sell_online"])

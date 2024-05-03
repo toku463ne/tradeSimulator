@@ -1,11 +1,11 @@
 {
-    "codename": "^N225",
+    "codename": "^GSPC",
     "granularity": "D",
-    "start_date": "2023-11-01",
-    "end_date": "2024-04-01",
+    "start_date": "2019-01-01",
+    "end_date": "2024-01-01",
     "indicators": {
         "sma20": {
-            "span": 20,
+            "span": 10,
             "type": "sma"
         },
         "zigzag5": {

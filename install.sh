@@ -11,10 +11,27 @@ sudo mkdir -p $appdir
 curuser=`whoami`
 sudo chown $curuser:$curuser $appdir
 
+pkgs="gnupg postgresql-common postgresql-client apt-transport-https lsb-release wget \
+npm python3-pip python3-venv mariadb-server nginx build-essential libpq-dev \
+libssl-dev libffi-dev libssl-dev libmysqlclient-dev net-tools \
+adminer php8.1 php8.1-fpm php8.1-mysql php8.1-xml php8.1-mbstring"
+
 echo apt update
 sudo apt update
-echo apt -y install nodejs npm python3-pip python3-venv mariadb-server nginx build-essential libssl-dev libffi-dev libssl-dev libmysqlclient-dev net-tools adminer php8.1 php8.1-fpm php8.1-mysql php8.1-xml php8.1-mbstring
-sudo apt -y install nodejs npm python3-pip python3-venv mariadb-server nginx build-essential libssl-dev libffi-dev libssl-dev libmysqlclient-dev net-tools adminer php8.1 php8.1-fpm php8.1-mysql php8.1-xml php8.1-mbstring
+echo apt -y install $pkgs 
+sudo apt -y install $pkgs
+
+echo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
+sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
+
+echo "deb https://packagecloud.io/timescale/timescaledb/ubuntu/ $(lsb_release -c -s) main" | sudo tee /etc/apt/sources.list.d/timescaledb.list
+wget --quiet -O - https://packagecloud.io/timescale/timescaledb/gpgkey | sudo apt-key add -
+echo apt update
+sudo apt update
+
+echo apt install timescaledb-2-postgresql-14
+sudo apt install timescaledb-2-postgresql-14
+
 
 plugindir=`sudo mysql -sN -e "select @@plugin_dir;"`
 
@@ -32,8 +49,17 @@ set +e
 echo mysql -e "create aggregate function trimmean returns real soname'trimmean.so';"
 sudo mysql -e "CREATE AGGREGATE FUNCTION trimmean RETURNS REAL SONAME 'trimmean.so';"
 
-echo 'mysql  < sql/init_database.sql'
-sudo mysql  < sql/init_database.sql
+#echo 'mysql  < sql/mysql/init_database.sql'
+#sudo mysql  < sql/mysql/init_database.sql
+
+echo "shared_preload_libraries = 'timescaledb'"
+sudo sed -i "s/#shared_preload_libraries = ''/shared_preload_libraries = 'timescaledb'/g" /etc/postgresql/14/main/postgresql.conf
+
+echo systemctl restart postgresql@14-main
+sudo systemctl restart postgresql@14-main
+
+echo "postgres psql < sql/postgresql/init_database.sql"
+sudo -u postgres psql < sql/postgresql/init_database.sql
 set -e
 
 echo python3 -m venv $appdir/.venv

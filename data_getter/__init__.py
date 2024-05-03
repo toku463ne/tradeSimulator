@@ -16,6 +16,12 @@ def getPrices(codename, granularity, startep, endep):
         if ds == "mysql":
             import data_getter.my_getter
             dg = data_getter.my_getter.MyGetter(dg)
+        if ds == "pgdf":
+            import data_getter.pgdf_getter
+            dg = data_getter.pgdf_getter.PgDfGetter(dg)
+        if ds == "postgresql":
+            import data_getter.pg_getter
+            dg = data_getter.pg_getter.PgGetter(dg)
     
     (ep, dt, o, h, l, c, v) = dg.getPrices(startep, endep)
     return (ep, dt, o, h, l, c, v)
@@ -27,15 +33,21 @@ def getDataGetter(codename, granularity, is_dgtest=False):
         if ds == "yf":
             import data_getter.yfinance_getter
             dg = data_getter.yfinance_getter.YFinanceGetter(codename, granularity)
-        if ds == "mydf":
+        elif ds == "mydf":
             import data_getter.mydf_getter
             dg = data_getter.mydf_getter.MyDfGetter(dg, is_dgtest=is_dgtest)
-        if ds == "mysql":
+        elif ds == "mysql":
             import data_getter.my_getter
             dg = data_getter.my_getter.MyGetter(dg, is_dgtest=is_dgtest)
-        if ds == "onmem":
+        elif ds == "onmem":
             import data_getter.onmem_getter
             dg = data_getter.onmem_getter.OnMemGetter(dg, is_dgtest=is_dgtest)
+        elif ds == "pgdf":
+            import data_getter.pgdf_getter
+            dg = data_getter.pgdf_getter.PgDfGetter(dg, is_dgtest=is_dgtest)
+        elif ds == "postgresql":
+            import data_getter.pg_getter
+            dg = data_getter.pg_getter.PgGetter(dg, is_dgtest=is_dgtest)
     return dg
 
 def getAllTables():

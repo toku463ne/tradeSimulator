@@ -57,6 +57,9 @@ class Chart(object):
                 chart_type = "zigzag"
                 values = ele.get_zigzag_chart_values(indicator_name, eps, 
                     dt, h, l, v, int(indicator["size"]))
+            if ind_type == "ichimoku":
+                chart_type = "ichimoku"
+                values = ele.get_ichimoku_chart_values(indicator_name, eps, h, l, c)
 
             indicator["chart_type"] = chart_type
             indicator["values"] = values
@@ -84,8 +87,8 @@ class Chart(object):
             html = html.replace("#AM_OHLCV_DATA#", data)
             html = html.replace("#AM_OHLCV_INSTRUMENT#", chartparams["codename"])
             html = html.replace("#AM_OHLCV_BACKTESTDATA#", backtest_data)
-            resp.body = html
+            resp.text = html
         except Exception as e:
             resp.content_type = 'text/html'
-            resp.body = e
+            resp.text = e
             logging.error(e)

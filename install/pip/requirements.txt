@@ -10,8 +10,11 @@ xlrd
 path
 scikit-learn
 matplotlib
-jupyter
 pyopenssl
 gunicorn
 tzlocal
 pytz
+jupyter
+Jupyter
+jupyterlab
+psycopg2

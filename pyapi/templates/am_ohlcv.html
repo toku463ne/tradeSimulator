@@ -281,6 +281,13 @@ function setIndicatorSeries(name, chart, xaxis, yaxis, data) {
       setLineSeries(name, chart, xaxis, yaxis, data["values"]["main"]);
       setScatterSeries(name, chart, xaxis, yaxis, data["values"]["middle"]);
       break;
+    case "ichimoku":
+      setLineSeries("tenkan", chart, xaxis, yaxis, data["values"]["tenkan"]);
+      setLineSeries("kijun", chart, xaxis, yaxis, data["values"]["kijun"]);
+      setLineSeries("senkou1", chart, xaxis, yaxis, data["values"]["senkou1"]);
+      setLineSeries("senkou2", chart, xaxis, yaxis, data["values"]["senkou2"]);
+      setLineSeries("chikou", chart, xaxis, yaxis, data["values"]["chikou"]);
+      break;
   }
   /*
   for (let i=0; i<series.length; i++) {
@@ -444,7 +451,7 @@ function setBacktestSeries(chart, xaxis, yaxis, data) {
   if ("indicators" in data) {
     for (let indi_name in data["indicators"]) {
       let indi_data = data["indicators"][indi_name];
-      //console.log(indi_data)
+      console.log(indi_data)
       setIndicatorSeries(indi_name, 
           chart, dateAxis, valueAxis, indi_data);
     }

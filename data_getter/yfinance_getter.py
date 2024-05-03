@@ -25,13 +25,17 @@ class YFinanceGetter(DataGetter):
     def _convGranularity2Interval(self, granularity):
         t = granularity[:1]
         i = granularity[1:]
+        t2 = granularity[:2]
+        i2 = granularity[2:]
 
         if i == "":
             i = "1"
         
         # interval: 1m, 2m, 5m, 15m, 30m, 60m, 90m, 1h, 1d, 5d, 1wk, 1mo, 3mo
         interval = ""
-        if t.upper() == "M":
+        if t2.upper() == "MO":
+            interval = "%s%s" % (i2, "mo")
+        elif t.upper() == "M":
             interval = "%s%s" % (i, "m")
         elif t.upper() == "H": 
             interval = "%s%s" % (i, "h")

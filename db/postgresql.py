@@ -1,28 +1,27 @@
-import pymysql
+import psycopg2
 import db
 from env import *
 
-class MySqlDB(db.DB):
+class PostgreSqlDB(db.DB):
 	def __init__(self, is_master=False):
 		self.is_master = is_master
 
 	def connect(self):
-		inf = conf["mysql"]
+		inf = conf["postgresql"]
 
 		condb = inf["db"]
 		if self.is_master == False:
 			if conf["is_test"]:
 				condb = inf["test_db"]
 
-		conn = pymysql.connect(
-				host = inf["host"],
-				db = condb,
-				user = inf["user"],
-				passwd = inf["password"],
-				charset = "utf8",
-				local_infile = 1
-		)
-		conn.autocommit(True)
+		inf = conf["postgresql"]
+		conn_string = "host=%s dbname=%s user=%s password=%s" % (
+			inf["host"],
+			condb,
+			inf["user"],
+			inf["password"])
+		conn =  psycopg2.connect(conn_string)
+		conn.autocommit = True
 		return conn
 
 	def execSql(self, sql):
@@ -71,26 +70,20 @@ class MySqlDB(db.DB):
 
 	def createTable(self, tableName, templateName="", replaces={}):
 		if templateName != "":
-			self._createTableFromTemplate("%s/mysql/create_table_%s.sql" % (SQL_DIR, 
+			self._createTableFromTemplate("%s/postgresql/create_table_%s.sql" % (SQL_DIR, 
                                                         templateName), tableName, replaces)
 		else:
-			self._createTableFromTemplate("%s/mysql/create_table_%s.sql" % (SQL_DIR, 
+			self._createTableFromTemplate("%s/postgresql/create_table_%s.sql" % (SQL_DIR, 
                                                         tableName), tableName)
 	
 	def tableExists(self, tableName):
-		if conf["is_test"]:
-			condb = conf["mysql"]["test_db"]
-		else:
-			condb = conf["mysql"]["db"]
-		sql = """SELECT count(*) 
-FROM information_schema.TABLES 
-WHERE (TABLE_SCHEMA = '%s') AND (TABLE_NAME = '%s');
-""" % (condb, tableName)
-		(cnt,) = self.select1rec(sql)
-		if cnt > 0:
-			return True
-		else:
-			return False
+		sql = """SELECT EXISTS (
+    SELECT FROM pg_catalog.pg_tables
+    WHERE tablename  = '%s'
+);
+""" % (tableName.lower())
+		(b,) = self.select1rec(sql)
+		return b
 
 
 	def dropTable(self, tableName):
@@ -115,4 +108,4 @@ WHERE (TABLE_SCHEMA = '%s') AND (TABLE_NAME = '%s');
 		return None
 
 def execSql(sql):
-	return MySqlDB().execSql(sql)
+	return PostgreSqlDB().execSql(sql)

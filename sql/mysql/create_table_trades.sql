@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS trades (
     `result` VARCHAR(10),
     `profit` FLOAT,
     `side` SMALLINT,
-    `units` INT,
+    `units` FLOAT,
     `expiration_epoch` INT,
     `expiration_datetime` DATETIME,
     `open_price` FLOAT,

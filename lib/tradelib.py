@@ -2,9 +2,13 @@
 def getUnitSecs(granularity):
     t = granularity[:1]
     i = granularity[1:]
-    
+    t2 = granularity[:2]
+    i2 = granularity[2:]
+
     unit_secs = 0
-    if t.upper() == "S":
+    if t2.upper() == "MO":
+        unit_secs = 60*60*24*30*int(i2)
+    elif t.upper() == "S":
         unit_secs = int(i)
     elif t.upper() == "M" and i != "":
         unit_secs = int(i)*60
@@ -16,6 +20,8 @@ def getUnitSecs(granularity):
         unit_secs = 60*60*24*7
     elif t.upper() == "M": 
         unit_secs = 60*60*24
+    
+    
     if unit_secs == 0: raise Exception("Not proper granularity type.")
     return unit_secs
 
