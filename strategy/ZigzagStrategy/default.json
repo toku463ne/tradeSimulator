@@ -1,0 +1,11 @@
+{
+    "name": "AccumulationStrategy",
+    "args": {
+        "codename": "^N225",
+        "acc_amount": 10000,
+        "acc_timing": {
+            "type": "day_on_month",
+            "day": 1
+        }
+    }
+}

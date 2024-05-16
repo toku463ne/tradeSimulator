@@ -1,0 +1,29 @@
+[win]3: 20220513-20220516 code=6857.T open=2082.959081 close=2116.721301 side=1 desc=Stop Order
+
+[win]1: 20220126-20220204 code=7203.T open=2110.768551 close=2156.654913 side=1 desc=Stop Order
+[win]2: 20220309-20220310 code=7203.T open=1753.455009 close=1799.072974 side=1 desc=Stop Order
+
+
+[win]1: 20211007-20211008 code=9984.T open=5862.359241 close=6082.986841 side=1 desc=Stop Order
+[win]3: 20211007-20211008 code=1570.T open=14693.333333 close=15162.000000 side=1 desc=Stop Order
+[win]4: 20211007-20211011 code=^N225 open=27767.097005 close=28484.869141 side=1 desc=Stop Order
+[lose]2: 20211007-20211013 code=6857.T open=2226.813188 close=2086.176575 side=1 desc=Stop Order
+[win]6: 20211112-20211118 code=4755.T open=1150.465028 close=1209.267212 side=1 desc=Stop Order
+[win]5: 20211111-20211120 code=7267.T open=993.900096 close=1007.252626 side=1 desc=Stop Order
+[lose]7: 20211130-20211201 code=9984.T open=6009.269784 close=5847.686035 side=1 desc=Stop Order
+[lose]9: 20211201-20211202 code=9984.T open=5810.007556 close=5623.015674 side=1 desc=Stop Order
+[lose]12: 20211202-20211203 code=9984.T open=5544.652499 close=5501.789551 side=1 desc=Stop Order
+[lose]8: 20211130-20211206 code=6736.T open=2723.682648 close=2544.312451 side=1 desc=Stop Order
+[lose]10: 20211201-20211206 code=4755.T open=1164.302187 close=1109.499878 side=1 desc=Stop Order
+[win]13: 20211202-20211208 code=1570.T open=14583.333333 close=15503.250000 side=1 desc=Stop Order
+[win]14: 20211207-20211208 code=6736.T open=2551.518048 close=2641.042725 side=1 desc=Stop Order
+[win]11: 20211201-20211210 code=7269.T open=959.864314 close=966.371652 side=1 desc=Stop Order
+[win]15: 20211218-20211222 code=3661.T open=977.489220 close=1019.541156 side=1 desc=Stop Order
+[win]16: 20220108-20220109 code=3661.T open=847.292685 close=880.105783 side=1 desc=Stop Order
+[lose]18: 20220122-20220124 code=^GSPC open=4429.266602 close=4261.939941 side=1 desc=Stop Order
+[lose]17: 20220120-20220125 code=4755.T open=1051.459214 close=989.774060 side=1 desc=Stop Order
+[lose]20: 20220127-20220128 code=1570.T open=13163.333333 close=13048.250000 side=1 desc=Stop Order
+[win]19: 20220125-20220202 code=^GSPC open=4351.523275 close=4561.129883 side=1 desc=Stop Order
+[lose]21: 20220223-20220224 code=1570.T open=13061.666667 close=12678.000000 side=1 desc=Stop Order
+[win]23: 20220309-20220310 code=7203.T open=1753.455009 close=1799.072974 side=1 desc=Stop Order
+[win]22: 20220308-20220316 code=7267.T open=939.980143 close=999.180039 side=1 desc=Stop Order

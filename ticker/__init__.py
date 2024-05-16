@@ -167,7 +167,8 @@ values('%s', '%s', %d, %d, '%s', '%s')""" % (self.table, self.codename, startep,
                 self._resetData(ep)
             if self.tick(ep) == False:
                 raise Exception("No data for epoch=%d" % ep)
-        return self.getData(i=self.getPrevIndex(ep))  
+        return self.getData()  
+        #return self.getData(i=self.getPrevIndex(ep))  
 
 
 
@@ -198,37 +199,39 @@ values('%s', '%s', %d, %d, '%s', '%s')""" % (self.table, self.codename, startep,
         self.index -= rmi
 
     def tick(self, ep=0):
-        if len(self.eps) == 0:
+        eps = self.eps
+        if len(eps) == 0:
             self.initData()
 
         if self.err == TICKER_ERR_EOF:
             self._setCurrData(-1)
             return False
+        eps = self.eps
         n = len(self.eps)
         if n == 0:
             return False
         if ep > 0:
-            if ep > self.eps[-1]:
+            if ep > eps[-1]:
                 self.err = TICKER_ERR_EOF
                 self._setCurrData(-1)
                 self.index = -1
                 return False
             i = 0
-            if self.index >= 0 and ep > self.eps[self.index]: 
+            if self.index >= 0 and ep > eps[self.index]: 
                 i = self.index
             while i < n:
-                if ep == self.eps[i]:
+                if ep == eps[i]:
                     self.index = i
                     self._setCurrData(i)
                     self.err = TICKER_ERR_NONE
                     return True
-                elif ep < self.eps[i]:
+                elif ep < eps[i]:
                     if i > 0:
                         j = i - 1
                         self.index = j
                         self._setCurrData(j)
 
-                        if ep - self.unitsecs > self.eps[j]:
+                        if ep - self.unitsecs > eps[j]:
                             self.err = TICKER_NODATA
                     else:
                         self.err = TICKER_NODATA

@@ -99,7 +99,7 @@ class PgDfGetter(DataGetter):
             if startep + buff_size*self.unitsecs < df.iloc[0]["ep"] - self.unitsecs + 1:
                 need_reselect = True
                 self.upsertData(self._getPricesFromChild(upd_startep, 
-                    df.iloc[0]["EP"] - self.unitsecs, waitDownload))
+                    df.iloc[0]["ep"] - self.unitsecs, waitDownload))
             if endep - buff_size*self.unitsecs > df.iloc[-1]["ep"]:
                 need_reselect = True
                 self.upsertData(self._getPricesFromChild(df.iloc[-1]["ep"]+self.unitsecs, 

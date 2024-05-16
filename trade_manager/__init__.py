@@ -33,13 +33,20 @@ class TradeManager(object):
                 order_events = strategy.onTick(epoch)
             else:
                 order_events = []
+            
+            if t.tick() == False:
+                break
+
+            new_epoch = t.epoch
+            if new_epoch == epoch:
+                continue
+
+            epoch = new_epoch
             while order_events is not None and len(order_events) > 0:
                 order = order_events.pop(0)
                 if self.receiveOrder(epoch, order) == False:
                     strategy.onError(epoch, order)
             
-            if t.tick() == False:
-                break
 
             events = self.checkEvents(epoch)
             while len(events) > 0:

@@ -67,7 +67,9 @@ and ep >= %d and ep <= %d""" % (self.table,
         return zz_ep, zz_dt, zz_prices, zz_v, zz_dirs, zz_dists
 
 
-    def calcTickValues(self, ohlcv, size=5, middle_size=2):
+    def calcTickValues(self, ohlcv):
+        size = self.size
+        middle_size = self.middle_size
         self.last_i = -1
         codename = self.codename
         (ep, dt, o, h, l, c, v) = ohlcv
@@ -82,13 +84,13 @@ and ep >= %d and ep <= %d""" % (self.table,
                 raise Exception("Cannot save non continuous data to DB. startdt must be less than %s" % (lib.epoch2dt(db_endep+self.unitsecs)))
             
             if endep < db_startep - self.unitsecs:
-                raise Exception("Cannot save non continuous data to DB. enddt must be more than %s" % (lib.epoch2dt(endep+selt.unitsecs)))
+                raise Exception("Cannot save non continuous data to DB. enddt must be more than %s" % (lib.epoch2dt(endep+self.unitsecs)))
         
             # only load db when the range is inside what exist in DB for simplicity
             if startep >= db_startep and endep <= db_endep:
                 load_db = True
         else:
-            load_db = True
+            load_db = False
 
 
         self.eps = ep
@@ -174,19 +176,34 @@ values('%s', %d, '%s', %f, %f, %d, %d);""" % (self.table,
             return (0,None,-1,-1,-1,-1,-1)
         
         i = self.last_i
-        return (self.ep[i],self.dt[i],self.o[i],self.h[i],self.l[i],self.c[i],self.v[i])
+        return (self.eps[i],self.dt[i],self.o[i],self.h[i],self.l[i],self.c[i],self.v[i])
 
     def getRecentOhlcv(self, n):
         if self.last_i == -1 or n <= 0:
             return ([],[],[],[],[],[],[])
         i = self.last_i
         j = i-n+1
-        return (self.ep[j:i+1],self.dt[j:i+1],self.o[j:i+1],
+        return (self.eps[j:i+1],self.dt[j:i+1],self.o[j:i+1],
                 self.h[j:i+1],self.l[j:i+1],self.c[j:i+1],self.v[j:i+1])
 
 
 
-    def getData(self, i=-1, n=1, zz_mode=ZZ_MODE_RETURN_ONLY_LAST_MIDDLE, do_update_flag_change=True):
+    # if startep > 0 will ignore n
+    def getData(self, i=-1, n=1, startep=0, zz_mode=ZZ_MODE_RETURN_ONLY_LAST_MIDDLE, do_update_flag_change=True):
+        zz_ep = self.zz_ep
+        zz_dt = self.zz_dt
+        zz_dirs = self.zz_dirs
+        zz_prices = self.zz_prices
+        zz_v = self.zz_v
+        
+        if startep > 0:
+            n = 0
+            for k in range(len(zz_ep)-1,0,-1):
+                if zz_ep[k] < startep:
+                    break
+                n += 1
+
+
         if do_update_flag_change:
             self.updated = False
         size = self.size
@@ -240,9 +257,9 @@ values('%s', %d, '%s', %f, %f, %d, %d);""" % (self.table,
             last_peak_i = -1
             if curr_zi < len(tick_indexes)-1:
                 return False, last_peak_i, last_peak, last_dir
-            if abs(self.zz_dirs[-1]) == 1:
+            if abs(zz_dirs[-1]) == 1:
                 return False, last_peak_i, last_peak, last_dir
-            if self.zz_dirs[-1] == 2:
+            if zz_dirs[-1] == 2:
                 min_peak = 0
                 min_j = -1
                 for j in range(tick_indexes[curr_zi]+1, len(eps)):
@@ -256,7 +273,7 @@ values('%s', %d, '%s', %f, %f, %d, %d);""" % (self.table,
                     last_dir = -1
                     last_peak_i = min_j
                     return True, last_peak_i, last_peak, last_dir
-            if self.zz_dirs[-1] == -2:
+            if zz_dirs[-1] == -2:
                 max_peak = 0
                 max_j = -1
                 for j in range(tick_indexes[-1]+1, len(eps)):
@@ -273,8 +290,8 @@ values('%s', %d, '%s', %f, %f, %d, %d);""" % (self.table,
             return False, last_peak_i, last_peak, last_dir
 
         if n == 1 and i >= 0:
-            return (self.zz_ep[curr_zi], self.zz_dt[curr_zi], 
-                    self.zz_dirs[curr_zi], self.zz_prices[curr_zi], self.zz_v[curr_zi])
+            return (zz_ep[curr_zi], zz_dt[curr_zi], 
+                    zz_dirs[curr_zi], zz_prices[curr_zi], zz_v[curr_zi])
             
         elif i >= 0:
             if zz_mode == ZZ_MODE_RETURN_MIDDLE:
@@ -284,21 +301,16 @@ values('%s', %d, '%s', %f, %f, %d, %d);""" % (self.table,
                 need_change, last_peak_i, last_peak, last_dir = checkIfNeedChangeLastPeak()
                 if need_change:
                     curr_zj += 1
-                    return (self.zz_ep[curr_zj:curr_zi+1] + [eps[last_peak_i]], 
-                            self.zz_dt[curr_zj:curr_zi+1] + [dt[last_peak_i]], 
-                            self.zz_dirs[curr_zj:curr_zi+1] + [last_dir], 
-                            self.zz_prices[curr_zj:curr_zi+1] + [last_peak],
-                            self.v[curr_zj:curr_zi+1] + [v[last_peak_i]])
+                    return (zz_ep[curr_zj:curr_zi+1] + [eps[last_peak_i]], 
+                            zz_dt[curr_zj:curr_zi+1] + [dt[last_peak_i]], 
+                            zz_dirs[curr_zj:curr_zi+1] + [last_dir], 
+                            zz_prices[curr_zj:curr_zi+1] + [last_peak],
+                            v[curr_zj:curr_zi+1] + [v[last_peak_i]])
                 else:
-                    return (self.zz_ep[curr_zj:curr_zi+1], self.zz_dt[curr_zj:curr_zi+1], 
-                        self.zz_dirs[curr_zj:curr_zi+1], self.zz_prices[curr_zj:curr_zi+1],
-                        self.zz_v[curr_zj:curr_zi+1])
+                    return (zz_ep[curr_zj:curr_zi+1], zz_dt[curr_zj:curr_zi+1], 
+                        zz_dirs[curr_zj:curr_zi+1], zz_prices[curr_zj:curr_zi+1],
+                        zz_v[curr_zj:curr_zi+1])
             else:
-                zz_ep = self.zz_ep
-                zz_dt = self.zz_dt
-                zz_drs = self.zz_dirs
-                zz_prices = self.zz_prices
-                zz_v = self.zz_v
                 new_ep = [0]*n
                 new_dt = [0]*n
                 new_drs = [0]*n
@@ -307,28 +319,28 @@ values('%s', %d, '%s', %f, %f, %d, %d);""" % (self.table,
                 if zz_mode == ZZ_MODE_RETURN_ONLY_LAST_MIDDLE:
                     new_ep[-1] = zz_ep[curr_zi]
                     new_dt[-1] = zz_dt[curr_zi]
-                    new_drs[-1] = zz_drs[curr_zi]
+                    new_drs[-1] = zz_dirs[curr_zi]
                     new_prices[-1] = zz_prices[curr_zi]
                     new_v[-1] = zz_v[curr_zi]
                 curr_zj = curr_zi
                 if zz_mode == ZZ_MODE_RETURN_COMPLETED:
                     while curr_zj >= 0:
-                        if abs(zz_drs[curr_zj]) == 2:
+                        if abs(zz_dirs[curr_zj]) == 2:
                             break
                         curr_zj -= 1
                     new_ep[-1] = zz_ep[curr_zj]
                     new_dt[-1] = zz_dt[curr_zj]
-                    new_drs[-1] = zz_drs[curr_zj]
+                    new_drs[-1] = zz_dirs[curr_zj]
                     new_prices[-1] = zz_prices[curr_zj]
                     new_v[-1] = zz_v[curr_zj]
 
                 curr_zj -= 1
                 j = 2
                 while curr_zj >= 0:
-                    if abs(zz_drs[curr_zj]) == 2:
+                    if abs(zz_dirs[curr_zj]) == 2:
                         new_ep[-j] = zz_ep[curr_zj]
                         new_dt[-j] = zz_dt[curr_zj]
-                        new_drs[-j] = zz_drs[curr_zj]
+                        new_drs[-j] = zz_dirs[curr_zj]
                         new_prices[-j] = zz_prices[curr_zj]
                         new_v[-j] = zz_v[curr_zj]
                         j += 1
@@ -338,11 +350,11 @@ values('%s', %d, '%s', %f, %f, %d, %d);""" % (self.table,
                 if zz_mode == ZZ_MODE_RETURN_ONLY_LAST_MIDDLE:
                     need_change, last_peak_i, last_peak, last_dir = checkIfNeedChangeLastPeak()
                     if need_change:
-                        return (self.zz_ep[-j+2:] + [eps[last_peak_i]], 
-                            self.zz_dt[-j+2:] + [dt[last_peak_i]], 
-                            self.zz_dirs[-j+2:] + [last_dir], 
-                            self.zz_prices[-j+2:] + [last_peak],
-                            self.zz_v[-j+2:] + [v[last_peak_i]])
+                        return (zz_ep[-j+2:] + [eps[last_peak_i]], 
+                            zz_dt[-j+2:] + [dt[last_peak_i]], 
+                            zz_dirs[-j+2:] + [last_dir], 
+                            zz_prices[-j+2:] + [last_peak],
+                            zz_v[-j+2:] + [v[last_peak_i]])
                 return (new_ep[-j+1:],new_dt[-j+1:],new_drs[-j+1:],new_prices[-j+1:], new_v[-j+1:])
 
         else:

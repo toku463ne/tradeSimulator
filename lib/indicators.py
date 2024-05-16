@@ -139,3 +139,15 @@ def ichimoku(h, l, c, tenkan_span=9, kijun_span=26, senkou1_span=26, senkou2_spa
     
     return ichimoku_data
 
+
+def peaks(eps, dt, h, l, size=10):
+    peaks = []
+    for i in range(len(eps)-size*2):
+        midi = i + size
+        midh = h[midi]
+        midl = l[midi]
+        if midh == max(h[i:i+size*2]):
+            peaks.append({"ep": eps[midi], "dt": dt[midi], "side": 1, "index": midi, "price": midh})
+        elif midl == min(l[i:i+size*2]):
+            peaks.append({"ep": eps[midi], "dt": dt[midi], "side": -1, "index": midi, "price": midl})
+    return peaks

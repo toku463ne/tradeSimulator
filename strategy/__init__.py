@@ -32,7 +32,7 @@ class Strategy(object):
 
     def createMarketOrder(self, epoch, data_getter, side, units,
                         validep=0, takeprofit=0, stoploss=0, expiration=0, desc="Market Order"):
-        (_, _, _, _, _, price, _) = data_getter.getPrice(epoch+data_getter.unitsecs)
+        (_, _, price, _, _, _, _) = data_getter.getPrice(epoch+data_getter.unitsecs)
         order = OrderEvent(CMD_CREATE_MARKET_ORDER, data_getter, 
                           epoch=epoch, side=side,
                           units=units, price=price, validep=validep, 
@@ -43,7 +43,7 @@ class Strategy(object):
     
     def createStopOrder(self, epoch, data_getter, side, units,
                         validep=0, takeprofit=0, stoploss=0, expiration=0, desc="Stop Order"):
-        (_, price, _, _, _, _, _) = data_getter.getPrice(epoch+data_getter.unitsecs)
+        (_, _, price, _, _, _, _) = data_getter.getPrice(epoch+data_getter.unitsecs)
         order = OrderEvent(CMD_CREATE_STOP_ORDER, data_getter, 
                           epoch=epoch, side=side,
                           units=units, price=price, validep=validep, 

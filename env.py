@@ -5,6 +5,7 @@ import lib
 
 BASE_DIR = os.path.dirname(os.path.realpath(__file__))
 SQL_DIR = '%s/%s' % (BASE_DIR, "sql")
+CHARTDEF_DIR = '%s/pyapi/chartdefs' % (BASE_DIR)
 
 
 conf = yaml.load(open("%s/default.yaml" % BASE_DIR), Loader=yaml.FullLoader)

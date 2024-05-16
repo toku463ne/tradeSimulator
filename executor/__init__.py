@@ -14,13 +14,30 @@ class Executor(object):
 
 
     def checkOrder(self, epoch, orderEvent):
-        (_, _, _, h, l, c, _) = orderEvent.getPrice(epoch)
-        price = (h+l+c)/3
+        (_, _, _, h, l, _, _) = orderEvent.getPrice(epoch)
+        price = orderEvent.price
         side = orderEvent.side
 
+        if side == SIDE_BUY:
+            if orderEvent.takeprofit_price < price:
+                orderEvent.setError(ERROR_BAD_ORDER, "Takeprofit is under order price under BUY action.")
+                return False
+            if orderEvent.stoploss_price > price:
+                orderEvent.setError(ERROR_BAD_ORDER, "Stoploss is over order price under BUY action.")
+                return False
+        
+        if side == SIDE_SELL:
+            if orderEvent.takeprofit_price > price:
+                orderEvent.setError(ERROR_BAD_ORDER, "Takeprofit is over order price under SELL action.")
+                return False
+            if orderEvent.stoploss_price < price:
+                orderEvent.setError(ERROR_BAD_ORDER, "Stoploss is under order price under SELL action.")
+                return False
+        
+
+
         if orderEvent.cmd == CMD_CREATE_STOP_ORDER:
-            if (side == SIDE_BUY and price >= price) or \
-                (side == SIDE_SELL and price <= price):
+            if price > h or price < l:
                 orderEvent.setError(ERROR_BAD_ORDER, "Wrong price in stop order.")
                 return False
         return True
@@ -43,10 +60,8 @@ class Executor(object):
                 return orderEvent
                 
             elif orderEvent.cmd == CMD_CREATE_STOP_ORDER:
-                
-                
-                if orderEvent.is_valid(epoch) == False:
-                    orderEvent.closeOrder(epoch, "expired")
+                if orderEvent.isValid(epoch) == False:
+                    orderEvent.closeOrder(epoch, "expired before trade")
                     return orderEvent
                 else:
                     if side == SIDE_BUY and orderEvent.price > l:
@@ -83,7 +98,7 @@ class Executor(object):
                     else:
                         iswin = -1
                     msg = "expired"
-            if side == SIDE_SELL:
+            elif side == SIDE_SELL:
                 if sl > 0 and h > sl:
                     iswin = -1
                     msg = "stoploss"
@@ -107,8 +122,6 @@ class Executor(object):
             if orderEvent.cmd == CMD_CREATE_MARKET_ORDER or orderEvent.cmd == CMD_CREATE_STOP_ORDER:
                 orderEvent.openTrade(epoch, price)
                 return orderEvent
-
-
 
         return None
 

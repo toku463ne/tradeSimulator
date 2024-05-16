@@ -70,8 +70,8 @@ class OrderEvent(object):
         self.desc = desc
         #return SignalEvent(self.id, ESTATUS_ORDER_CLOSED)
         
-    def isValid(self, tickEvent):
-        if tickEvent.time > self.validep:
+    def isValid(self, epoch):
+        if self.validep > 0 and epoch > self.validep:
             return False
             #self.close_order("Exceeded valid time=%s" % lib.epoch2str(self.validep))
         return True

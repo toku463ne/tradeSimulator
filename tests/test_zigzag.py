@@ -2,8 +2,6 @@ import unittest
 import __init__
 from ticker.zigzag import Zigzag
 from datetime import datetime
-import pandas as pd
-import ticker
 from consts import *
 import lib
 

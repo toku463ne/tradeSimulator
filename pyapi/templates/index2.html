@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Chart definition</title>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const comboBox = document.getElementById('fileSelect');
+    const textField = document.getElementById('chartparams');
+
+    function fetchFile(filename) {
+        fetch('/chartdefs/' + encodeURIComponent(filename))
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.text();
+            })
+            .then(data => textField.value = data)
+            .catch(error => {
+                console.error('Error:', error);
+                textField.value = 'Error loading file.';
+            });
+    }
+
+    function loadFileList() {
+        fetch('/chartdeflist')
+            .then(response => response.json())
+            .then(data => {
+                data.forEach(file => {
+                    let option = new Option(file, file);
+                    comboBox.appendChild(option);
+                });
+                fetchFile(data[0]); // Load the first file by default
+            })
+            .catch(error => console.error('Error loading file list:', error));
+    }
+
+    comboBox.addEventListener('change', function() {
+        fetchFile(comboBox.value);
+    });
+
+    // Load files list on initial load
+    loadFileList();
+});
+</script>
+</head>
+<body>
+    <div id="form">
+        <label for="fileSelect">Choose a file:</label>
+        <select id="fileSelect">
+        </select>
+        <form method="post" action="/chart">
+            <textarea id="chartparams" name="chartparams" rows="30" cols="100"></textarea>
+            <div id="button">
+                <input type="submit" value="Submit">
+            </div>
+        </form>
+    </div>
+
+</body>
+</html>

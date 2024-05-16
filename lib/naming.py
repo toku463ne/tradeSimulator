@@ -16,3 +16,9 @@ def priceTable(codename, granularity, tableNamePrefix=""):
 
 def ohlcvTable(granularity):
     return "ohlcv_" + granularity
+
+def peakTable(granularity, size):
+    return "peaks_%s_%d" % (granularity, size)
+
+def getZigzagTableName(granularity, zz_size, zz_middle_size):
+        return "tick_zigzag_%s_%d_%d" % (granularity, zz_size, zz_middle_size)

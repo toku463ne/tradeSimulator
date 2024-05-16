@@ -1,7 +1,7 @@
 from consts import *
 import lib
 import copy
-from db.mysql import MySqlDB
+from db.postgresql import PostgreSqlDB
         
 
 class Portoforio(object):
@@ -19,7 +19,7 @@ class Portoforio(object):
         self.buy_fund = buy_budget
         self.sell_fund = sell_budget
         
-        db = MySqlDB()
+        db = PostgreSqlDB()
         db.createTable("trades")
         db.createTable("trade_history")
         self.db = db
