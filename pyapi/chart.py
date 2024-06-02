@@ -20,7 +20,7 @@ class Chart(object):
 
 
     def get_data(self,data):
-        data = self.adjust_data(data)
+        data = self.adjust_data(data) 
         codename = data["codename"]
         granularity = data["granularity"]
         start = data["start_date"]
@@ -68,6 +68,21 @@ class Chart(object):
 
         return json.dumps(data).replace("\r", "").replace("\n", "")
 
+    def get_backtest_data(self, data):
+        if "trade_name" not in data.keys():
+            return '{}'
+
+        data = self.adjust_data(data)
+            
+        tradename = data["trade_name"]
+        codename = data["codename"]
+        startep = lib.str2epoch(data["start_date"])
+        endep = lib.str2epoch(data["end_date"])
+
+        data = ele.get_backtest_chart_values(tradename, codename, startep, endep)
+        return json.dumps(data).replace("\r", "").replace("\n", "")
+
+
 
     def on_post(self, req, resp, **kwargs):
         try:
@@ -75,7 +90,7 @@ class Chart(object):
             chartparams = json.loads(args["chartparams"])
             print(chartparams)
             data = self.get_data(chartparams)
-            backtest_data = '{}'
+            backtest_data = self.get_backtest_data(chartparams)
             
             html = ""
             with open("%s/pyapi/templates/am_ohlcv.html" % env.BASE_DIR, "r") as f:

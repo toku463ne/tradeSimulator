@@ -23,7 +23,7 @@ class SimpleMarketStrategy(Strategy):
     
 
     def onTick(self, epoch):
-        if self.id >= 0:
+        if self.id == "":
             return []
         if self.ticker == None:
             self.ticker = Ticker({
@@ -32,10 +32,15 @@ class SimpleMarketStrategy(Strategy):
                 "startep": epoch
                 })
 
+        
         if self.ticker.tick(epoch) == False:
+            return []
+        
+        if self.ticker.err == TICKER_NODATA:
             return []
 
         (now, _, _, h, l, c, _) = self.ticker.getPrice(epoch)
+        
         self.now = now
         price = c
 
@@ -49,7 +54,7 @@ class SimpleMarketStrategy(Strategy):
             #epoch, data_getter, side, units, price,
             #            validep=0, takeprofit=0, stoploss=0, desc=""
             order = self.createMarketOrder(now,
-                    self.ticker.dg, self.curr_side, 1,
+                    self.ticker, self.curr_side, 1,
                     takeprofit=price+self.curr_side*self.profit, 
                     stoploss=price-self.curr_side*self.profit)
             self.localId = order.localId

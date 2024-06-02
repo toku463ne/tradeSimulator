@@ -43,3 +43,23 @@ def get_ichimoku_chart_values(name, eps, h, l, c):
                 values.append(item)
         icvals[key] = values
     return icvals
+
+def get_backtest_chart_values(trade_name, codename, startep, endep):
+    from db.postgresql import PostgreSqlDB
+    trades = {}
+    pgdb = PostgreSqlDB()
+    sql = """SELECT order_id, side, open_epoch, open_price, close_epoch, close_price
+FROM trades
+WHERE
+trade_name = '%s' AND
+codename = '%s' AND
+open_epoch >= %d and open_epoch <= %d
+""" % (trade_name, codename, startep, endep)
+    for (order_id, side, open_epoch, open_price, close_epoch, close_price) in pgdb.execSql(sql):
+        trades[order_id] = {
+            "side": side,
+            "open": {"epoch": open_epoch, "price": open_price},
+            "close": {"epoch": close_epoch, "price": close_price}
+        }
+
+    return trades

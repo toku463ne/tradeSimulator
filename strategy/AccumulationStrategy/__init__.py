@@ -48,6 +48,6 @@ class AccumulationStrategy(Strategy):
 
 
         order = self.createMarketOrder(ep,
-            self.ticker.dg, SIDE_BUY, self.acc_amount/price)
+            self.ticker, SIDE_BUY, self.acc_amount/price)
     
         return [order]

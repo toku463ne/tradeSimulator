@@ -17,24 +17,25 @@ class Executor(object):
         (_, _, _, h, l, _, _) = orderEvent.getPrice(epoch)
         price = orderEvent.price
         side = orderEvent.side
+        tp = orderEvent.takeprofit_price
+        sl = orderEvent.stoploss_price
 
         if side == SIDE_BUY:
-            if orderEvent.takeprofit_price < price:
+            if tp > 0 and tp < price:
                 orderEvent.setError(ERROR_BAD_ORDER, "Takeprofit is under order price under BUY action.")
                 return False
-            if orderEvent.stoploss_price > price:
+            if sl > 0 and sl > price:
                 orderEvent.setError(ERROR_BAD_ORDER, "Stoploss is over order price under BUY action.")
                 return False
         
         if side == SIDE_SELL:
-            if orderEvent.takeprofit_price > price:
+            if tp > 0 and tp > price:
                 orderEvent.setError(ERROR_BAD_ORDER, "Takeprofit is over order price under SELL action.")
                 return False
-            if orderEvent.stoploss_price < price:
+            if sl > 0 and sl < price:
                 orderEvent.setError(ERROR_BAD_ORDER, "Stoploss is under order price under SELL action.")
                 return False
         
-
 
         if orderEvent.cmd == CMD_CREATE_STOP_ORDER:
             if price > h or price < l:
@@ -45,10 +46,10 @@ class Executor(object):
 
     # TODO: Issue error when the order is strange
     def detectOrderChange(self, epoch, orderEvent):
-        (_, _, _, h, l, c, _) = orderEvent.getPrice(epoch)
+        (_, _, o, h, l, c, _) = orderEvent.getPrice(epoch)
         side = orderEvent.side
-        price = (h+l+c)*1.0/3.0
-        orderEvent.price = price
+        #price = (h+l+c)*1.0/3.0
+        price = orderEvent.price
         expr = orderEvent.expiration
 
         if orderEvent.cmd == CMD_CANCEL:
@@ -56,7 +57,7 @@ class Executor(object):
         
         if orderEvent.status == ESTATUS_ORDER_OPENED:
             if orderEvent.cmd == CMD_CREATE_MARKET_ORDER:
-                orderEvent.openTrade(epoch, price, orderEvent.desc)
+                orderEvent.openTrade(epoch, o, orderEvent.desc)
                 return orderEvent
                 
             elif orderEvent.cmd == CMD_CREATE_STOP_ORDER:

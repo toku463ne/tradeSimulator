@@ -51,7 +51,9 @@ class TradeManager(object):
             events = self.checkEvents(epoch)
             while len(events) > 0:
                 event = events.pop(0)
-                strategy.onSignal(epoch, event)
+                order = strategy.onSignal(epoch, event)
+                if order is not None:
+                    order_events.append(order)
                 portforio.onSignal(epoch, event)
 
         return self.getReport()
@@ -93,8 +95,8 @@ class TradeManager(object):
 
         if self.executor.checkOrder(epoch, orderEvent) == False:
             return False
-        if orderEvent.id == -1:
-            orderEvent.setId(self.genId())
+        if orderEvent.id == "":
+            orderEvent.setId(str(self.genId()))
         #self.trans.append(orderEvent)
         #orderEvent = self.trans.pop()
         _id = orderEvent.id

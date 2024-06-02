@@ -1,0 +1,23 @@
+CREATE TABLE IF NOT EXISTS zz_strtg_params (
+    order_id VARCHAR(100),
+    codename VARCHAR(50),
+    EP INT NOT NULL,
+    DT TIMESTAMP,
+    price FLOAT,
+    trend INT,
+    vol_rank INT,
+    trade_pos_key INT,
+    tp_diff FLOAT,
+    prefer_recent_peaks INT,
+    mado FLOAT,
+    trend_rate FLOAT,
+    long_candle INT,
+    chiko FLOAT,
+    len_std FLOAT,
+    hara_rate FLOAT,
+    up_hige_rate FLOAT,
+    dw_hige_rate FLOAT,
+    len_avg FLOAT,
+    reversed_cnt INT,
+    PRIMARY KEY (order_id)
+);

@@ -1,0 +1,15 @@
+{
+    "codename": "3962.T",
+    "granularity": "D",
+    "start_date": "2020-01-01",
+    "end_date": "2022-01-01",
+    "indicators": {
+        "zigzag5": {
+            "size": 10,
+            "middle_size": 5,
+            "type": "zigzag"
+        } 
+    },
+    "trade_name": "zzanal"
+}
+      

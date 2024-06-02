@@ -1,25 +1,40 @@
 from consts import *
-import random
+import lib
+
 
 class OrderEvent(object):
-    def __init__(self, cmd, data_getter=None, _id=-1, epoch=0, side=0, 
+    def __init__(self, cmd, ticker=None, _id="", name="", epoch=0, side=0, 
                  units=0, validep=0,
         price=0, takeprofit=0, stoploss=0, expiration=0, desc=""):
+        self.ticker = ticker
+        data_getter = ticker.dg
         self.dg = data_getter
         self.id= _id
+        self.localId = ""
         if data_getter != None:
-            self.localId = "%s-%d-%d" % (data_getter.codename, epoch, random.randint(10000000, 99999999))
+            #self.localId = "%s-%d-%d" % (data_getter.codename, epoch, random.randint(10000000, 99999999))
+            if name != "":
+                self.localId = "%s-%s-%s" % (data_getter.codename, lib.epoch2str(epoch, CONNECTED_DATETIME_FORMAT), name)
+            else:
+                self.localId = "%s-%d" % (data_getter.codename, epoch)
             self.codename = data_getter.codename
             self.granularity = data_getter.granularity
+
+        if price == 0:
+            (_, _, price, _, _, _, _) = ticker.getPostPrice(epoch)
+
+        if _id == "" and self.localId != "":
+            self.id = self.localId
         self.epoch = epoch
         self.type = EVETYPE_ORDER
         self.side = side
         self.cmd = cmd
-        if cmd == CMD_CANCEL and _id == -1:
+        if cmd == CMD_CANCEL and _id == "":
             raise Exception("Need id for cancel orders!")
         self.units = units
         self.validep = validep
         self.price = price
+        self.order_price = price
         self.status = ESTATUS_ORDER_OPENED
         self.takeprofit_price = takeprofit
         self.stoploss_price = stoploss
@@ -45,7 +60,10 @@ class OrderEvent(object):
 
     def getPrice(self, epoch):
         return self.dg.getPrice(epoch)
-        
+    
+    def getPostPrice(self, epoch):
+        return self.ticker.getPostPrice(epoch)
+            
     def openTrade(self, epoch, price, desc=""):
         self.status = ESTATUS_TRADE_OPENED
         self.trade_open_time = epoch

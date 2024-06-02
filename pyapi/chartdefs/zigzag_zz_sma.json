@@ -1,8 +1,8 @@
 {
-    "codename": "9984.T",
+    "codename": "7751.T",
     "granularity": "D",
-    "start_date": "2019-01-01",
-    "end_date": "2024-01-01",
+    "start_date": "2017-06-01",
+    "end_date": "2019-01-01",
     "indicators": {
         "zigzag5": {
             "size": 10,

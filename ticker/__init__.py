@@ -158,6 +158,8 @@ values('%s', '%s', %d, %d, '%s', '%s')""" % (self.table, self.codename, startep,
                 return i
 
     def getPrevEpoch(self, ep, searchStartI=0):
+        if searchStartI == 0 and self.index > 0 and self.eps[self.index] < ep:
+            searchStartI = self.index
         i = self.getPrevIndex(ep, searchStartI)
         return self.eps[i]
 
@@ -173,12 +175,20 @@ values('%s', '%s', %d, %d, '%s', '%s')""" % (self.table, self.codename, startep,
 
 
     def getPostIndex(self, ep, searchStartI=0):
+        if searchStartI == 0 and self.index > 0 and self.eps[self.index] <= ep:
+            searchStartI = self.index
+
         eps = self.eps
         for i in range(searchStartI, len(eps)):
             if ep < eps[i]:
                 return i
             if ep == eps[i]:
                 return i
+
+    def getPostPrice(self, epoch):
+        i = self.getPostIndex(epoch)
+        return self.getData(i)
+        
 
 
     def _setCurrData(self, i):

@@ -30,29 +30,29 @@ class Strategy(object):
                 event.codename, event.error_msg))
         pass
 
-    def createMarketOrder(self, epoch, data_getter, side, units,
+    def createMarketOrder(self, epoch, ticker, side, units, name="",
                         validep=0, takeprofit=0, stoploss=0, expiration=0, desc="Market Order"):
-        (_, _, price, _, _, _, _) = data_getter.getPrice(epoch+data_getter.unitsecs)
-        order = OrderEvent(CMD_CREATE_MARKET_ORDER, data_getter, 
+        #(_, _, price, _, _, _, _) = data_getter.getPrice(epoch)
+        order = OrderEvent(CMD_CREATE_MARKET_ORDER, ticker, 
                           epoch=epoch, side=side,
-                          units=units, price=price, validep=validep, 
+                          units=units, name=name, validep=validep, 
                           takeprofit=takeprofit, stoploss=stoploss, 
                           expiration=expiration, desc=desc)
         #order.openTrade(epoch, price, desc)
         return order
     
-    def createStopOrder(self, epoch, data_getter, side, units,
+    def createStopOrder(self, epoch, ticker, side, units, price, name="",
                         validep=0, takeprofit=0, stoploss=0, expiration=0, desc="Stop Order"):
-        (_, _, price, _, _, _, _) = data_getter.getPrice(epoch+data_getter.unitsecs)
-        order = OrderEvent(CMD_CREATE_STOP_ORDER, data_getter, 
-                          epoch=epoch, side=side,
-                          units=units, price=price, validep=validep, 
+        #(_, _, price, _, _, _, _) = data_getter.getPrice(epoch+data_getter.unitsecs)
+        order = OrderEvent(CMD_CREATE_STOP_ORDER, ticker, 
+                          epoch=epoch, side=side, price=price,
+                          units=units, name=name, validep=validep, 
                           takeprofit=takeprofit, stoploss=stoploss, 
                           expiration=expiration, desc=desc)
         #order.openTrade(epoch, price, desc)
         return order
         
-    def cancelOrder(self, epoch, data_getter, _id):
+    def cancelOrder(self, epoch, _id):
         return OrderEvent(CMD_CANCEL, epoch=epoch, _id=_id)
           
           

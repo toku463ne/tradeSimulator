@@ -2,7 +2,7 @@ import numpy as np
 
 
 # Check if the prices are in momiai form
-def checkMomiai(cl, trend_rate=0.7):
+def _checkTrendRate(cl):
     u_cnt = 0
     d_cnt = 0
     le = len(cl)
@@ -13,8 +13,11 @@ def checkMomiai(cl, trend_rate=0.7):
             d_cnt += 1
     
     le = le - 1
-    if u_cnt/le < trend_rate and d_cnt/le < trend_rate:
-        return True
+    ur = u_cnt/le
+    dr = d_cnt/le
+    trend_rate1 = max(ur, dr)
+    if dr > ur:
+        trend_rate1 *= -1
     
     u_cnt = 0
     d_cnt = 0
@@ -26,20 +29,32 @@ def checkMomiai(cl, trend_rate=0.7):
             d_cnt += 1
     
     le = le - 2
-    if u_cnt/le < trend_rate and d_cnt/le < trend_rate:
-        return True
+    ur = u_cnt/le
+    dr = d_cnt/le
+    trend_rate2 = max(ur, dr)
+    if dr > ur:
+        trend_rate2 *= -1
     
-    return False
+    return (trend_rate1+trend_rate2)/2
+
+    #return max(trend_rate1, trend_rate2)
     
+def checkTrendRate(hl, ll, cl):
+    hr = _checkTrendRate(hl)
+    lr = _checkTrendRate(ll)
+    cr = _checkTrendRate(cl)
+    
+    has_trend = False
+    if (hr>0 and lr>0 and cr>0):
+        has_trend = True
+    if (hr<0 and lr<0 and cr<0):
+        has_trend = True
 
-def checkMado(ol, hl, ll, window_len_rate=0.001):
-    mado = False
-    if ll[-1] - hl[-2] > ol[-1]*window_len_rate:
-        mado = True
-    elif ll[-2] - hl[-1] > ol[-1]*window_len_rate:
-        mado = True
+    return (hr+lr+cr)/3, has_trend
 
-    return mado
+def checkMado(ol, hl, ll):
+    mado = max((ll[-1] - hl[-2])/ol[-1], (ll[-2] - hl[-1])/ol[-1])
+    return float(mado)
 
 # Check std rate of the last cancle length
 # Check if there is window between the last and the one before last candle
@@ -50,15 +65,21 @@ def checkLastCandle(ol, hl, ll, cl):
     cl = np.array(cl)
     
     le = abs(ol - cl)
-    a = le.mean()
-    s = le.std()
-    len_std = (le[-1] - a)/s
+    a = np.nan_to_num(le.mean())
+    s = np.nan_to_num(le.std())
+    if s > 0:
+        len_std = np.nan_to_num((le[-1] - a)/s)
+    else:
+        len_std = 0
 
-    o = ol[-1]
-    h = hl[-1]
-    l = ll[-1]
-    c = cl[-1]
+    o = np.nan_to_num(ol[-1])
+    h = np.nan_to_num(hl[-1])
+    l = np.nan_to_num(ll[-1])
+    c = np.nan_to_num(cl[-1])
 
+    if o <= 0 or h <= 0 or l <= 0 or c <= 0:
+        return
+        
     last_len = h - l
     hara_rate = (c - o)/last_len
 
@@ -66,16 +87,18 @@ def checkLastCandle(ol, hl, ll, cl):
     dw_hige_rate = (min(c, o)-l)/last_len
 
     return {
-        "len_std": len_std,
-        "hara_rate": hara_rate,
-        "up_hige_rate": up_hige_rate,
-        "dw_hige_rate": dw_hige_rate,
-        "len_avg": a
+        "len_std": float(len_std),
+        "hara_rate": float(hara_rate),
+        "up_hige_rate": float(up_hige_rate),
+        "dw_hige_rate": float(dw_hige_rate),
+        "len_avg": float(a)
     }
 
 
 def checkChiko(cl, chiko_span=26):
     period = len(cl) - chiko_span
+    if period == 0:
+        return (0, 0)
     u_cnt = 0
     d_cnt = 0
     for i in range(period):

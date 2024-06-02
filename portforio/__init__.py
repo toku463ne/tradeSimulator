@@ -24,13 +24,13 @@ class Portoforio(object):
         db.createTable("trade_history")
         self.db = db
 
-    def getId(self, epoch, orderId):
-        return "%d_%d" % (epoch, orderId)
+    #def getId(self, epoch, orderId):
+    #    return "%d_%s" % (epoch, orderId)
 
     def onSignal(self, epoch, event):
         orderId = event.id
         #epoch = event.epoch
-        _id = self.getId(epoch, orderId)
+        #_id = self.getId(epoch, orderId)
         price = event.price
         units = event.units
         total = price * units
@@ -57,6 +57,10 @@ class Portoforio(object):
         if status == ESTATUS_TRADE_OPENED:
             self.trades[orderId] = {
                 "codename": event.codename,
+                "order": {
+                    "price": event.order_price,
+                    "epoch": event.epoch
+                },
                 "open": {
                     "price": price,
                     "epoch": epoch,
@@ -68,7 +72,7 @@ class Portoforio(object):
                 "expiration": event.expiration,
                 "units": units
                 }
-            self.order_hist[orderId] = [_id]
+            self.order_hist[orderId] = [orderId]
             if side == SIDE_BUY:
                 h["buy_offline"] -= total
                 self.buy_fund -= total
@@ -89,7 +93,7 @@ class Portoforio(object):
             diff = self.trades[orderId]["close"]["price"] - self.trades[orderId]["open"]["price"]
             order_hist = self.order_hist[orderId]
             h1 = self.history[order_hist[0]]
-            order_hist.append(_id)
+            order_hist.append(orderId)
             last_total = h1["price"] * h1["units"]
             if side == SIDE_BUY:
                 h["buy_offline"] += total
@@ -112,15 +116,15 @@ class Portoforio(object):
                     self.trades[orderId]["result"] = "lose"
                     self.loses += 1
             t = self.trades[orderId]
-            print("[%s]%s: %s-%s code=%s open=%2f close=%2f side=%d desc=%s" % (t["result"],
-                orderId, lib.epoch2str(t["open"]["epoch"], "%Y%m%d"),lib.epoch2str(epoch, "%Y%m%d"), 
+            print("[%s]: %s-%s code=%s open=%2f close=%2f side=%d desc=%s" % (t["result"],
+                lib.epoch2str(t["open"]["epoch"], "%Y%m%d"),lib.epoch2str(epoch, "%Y%m%d"), 
                 t["codename"], t["open"]["price"], t["close"]["price"], 
                 t["side"], t["open"]["desc"]))
             self.insertResult(orderId)
         self.insertTradeHistory(h)
         self.last_hist = h
         if len(h.keys()) > 0:
-            self.history[_id] = copy.deepcopy(h)
+            self.history[orderId] = copy.deepcopy(h)
     
     def getReport(self):
         return self.last_hist
@@ -159,6 +163,7 @@ h["buy_offline"], h["buy_online"], h["sell_offline"], h["sell_online"])
         trade_name = self.trade_name
         sql = """insert into trades(trade_name,order_id,codename,result,profit,side,units,
 expiration_epoch,expiration_datetime,
+order_price,order_epoch,order_datetime,
 open_price,open_epoch,open_datetime,open_desc,
 takeprofit_price,stoploss_price,
 close_price,close_epoch,close_datetime,close_desc)
@@ -176,11 +181,13 @@ values"""
             profit = (open_price - close_price)*units
         sql += """('%s','%s','%s','%s',%f,%d,%d,
 %d,'%s',
+%f,%d,'%s',
 %f,%d,'%s','%s',
 %f,%f,
 %f,%d,'%s','%s'
 )""" % (trade_name,orderId,t["codename"],t["result"],profit,side,units,
 t["expiration"],lib.epoch2str(t["expiration"]),
+t["order"]["price"],t["order"]["epoch"],lib.epoch2str(t["order"]["epoch"]),
 open_price,t["open"]["epoch"],lib.epoch2str(t["open"]["epoch"]),t["open"]["desc"],
 t["takeprofit_price"], t["stoploss_price"],
 close_price,t["close"]["epoch"],lib.epoch2str(t["close"]["epoch"]),t["close"]["desc"])

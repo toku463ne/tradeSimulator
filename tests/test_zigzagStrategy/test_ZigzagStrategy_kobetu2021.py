@@ -1,28 +1,31 @@
 import __init__
 
 import unittest
-from strategy.AccumulationStrategy import AccumulationStrategy
+from strategy.ZigzagStrategy import ZigzagStrategy
 import lib
-import lib.tradelib as tradelib
 from time_ticker import TimeTicker
 from executor import Executor
 from trade_manager import TradeManager
 from portforio import Portoforio
-import db.mysql as mysql
+from db.postgresql import PostgreSqlDB
 
-class TestAccumulationStrategy(unittest.TestCase):
+class TestPeakStrategy(unittest.TestCase):
 
-    def _run(self, st, ed, os, acc_timing):
+    def _run(self, st, ed, os):
         codename = "^N225"
         granularity = "D"
         args = {"codename": codename, 
         "granularity": granularity, 
-        "acc_timing": acc_timing}
-        strategy = AccumulationStrategy(args)
+        "codenames": ["3962.T"],
+        "analize_mode": True,
+        "use_master": True,
+        "exclude_codes": ["^MSFT"],
+        "n_targets": 10}
+        strategy = ZigzagStrategy(args)
         ticker = TimeTicker(granularity, st, ed)
         executor = Executor()
-        portforio = Portoforio("test_accumulation", 1000000, 0)
-        tm = TradeManager("accumulation strategy", ticker, strategy, executor, portforio)
+        portforio = Portoforio("test_zigzag_kobetsu2022", 10000000, 0)
+        tm = TradeManager("zigzag strategy", ticker, strategy, executor, portforio)
         report = tm.run(endep=ed, orderstopep=os)
         #import json
         #print(json.dumps(tm.portforio.history, indent=4))
@@ -31,16 +34,13 @@ class TestAccumulationStrategy(unittest.TestCase):
 
 
     def testCase1(self):
-        st = lib.str2epoch("2021-10-01T00:00:00")
+        st = lib.str2epoch("2022-01-01T00:00:00")
         ed = lib.str2epoch("2022-12-01T00:00:00")
         os = lib.str2epoch("2022-11-20T00:00:00")
-        report = self._run(st, ed, os, {
-            "type": "day_on_month",
-            "day": 1
-        })
-        self.assertEqual(len(report),12)
-        db = mysql.MySqlDB()
-        self.assertEqual(db.countTable("trade_history", ["trade_name = 'test_accumulation'"]), 14)
+        report = self._run(st, ed, os)
+        #self.assertEqual(len(report),12)
+        db = PostgreSqlDB()
+        self.assertEqual(db.countTable("trades", ["trade_name = 'test_zigzag_7203'"]), 2)
         
         
         
