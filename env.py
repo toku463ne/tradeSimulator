@@ -7,7 +7,7 @@ BASE_DIR = os.path.dirname(os.path.realpath(__file__))
 SQL_DIR = '%s/%s' % (BASE_DIR, "sql")
 CHARTDEF_DIR = '%s/pyapi/chartdefs' % (BASE_DIR)
 
-
+config_path = ""
 conf = yaml.load(open("%s/default.yaml" % BASE_DIR), Loader=yaml.FullLoader)
 conf["is_test"] = False
 
@@ -64,6 +64,8 @@ def setup_logging(conf_log={}):
 
 def loadConf(confpath):
     global conf
+    global config_path
+    config_path = confpath
     conf2 = yaml.load(open(confpath), Loader=yaml.FullLoader)
     lib.mergeJson(conf, conf2)
 

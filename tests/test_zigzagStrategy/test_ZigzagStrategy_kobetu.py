@@ -93,11 +93,19 @@ codename = '%s'
         self._run("zz_kobetsu_1812.T_2019-05-15", "1812.T", st, ed, 1, SIDE_BUY, "win", datetime(2019, 5, 10))
     '''
 
+    '''
     # base line 4157. is a peak #6976_20221122.png
     def test_6976T_20190515(self):
         st = lib.str2epoch("2022-11-15T00:00:00")
         ed = lib.str2epoch("2022-12-03T00:00:00")
         self._run("zz_kobetsu_6976.T_2022-11-22", "6976.T", st, ed, 1, SIDE_BUY, "win", datetime(2022, 11, 30))
+    '''
+
+
+    def test_4185T_20190302(self):
+        st = lib.str2epoch("2019-02-25T00:00:00")
+        ed = lib.str2epoch("2019-03-10T00:00:00")
+        self._run("zz_kobetsu_4185.T_2019-03-02", "4185.T", st, ed, 1, SIDE_BUY, "lose", datetime(2019, 3, 2))
     
 
 

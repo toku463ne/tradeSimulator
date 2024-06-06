@@ -1,7 +1,9 @@
-import os, sys
+import os, sys, time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
+
+MAX_THREADS = 10
 
 from strategy import Strategy
 from ticker import Ticker
@@ -12,6 +14,7 @@ import lib.sqlib as sqlib
 import lib
 import lib.priceaction as pa
 from consts import *
+import env
 
 class ZigzagStrategy(Strategy):
     def __init__(self, args):
@@ -20,7 +23,7 @@ class ZigzagStrategy(Strategy):
         self.size = args.get("size", 10)
         self.middle_size = args.get("middle_size", 5)
         self.period = args.get("period", 200)
-        self.n_targets = args.get("n_targets", 10)
+        self.n_targets = args.get("n_targets", 100)
         self.diff_rate = args.get("diff_percent", 0.01)
         self.max_fund = args.get("max_fund", 1000000)
         self.profit_rate = args.get("profit_rate", 0.02)
@@ -140,7 +143,7 @@ WHERE
         "mado": 0.002,
         "trend_rate": 0.3,
         "chiko": 0.8
-    }):
+    }, config_path=""):
         cond_vals = {}
         granularity = self.timeTicker.granularity
         size = self.size
@@ -152,7 +155,7 @@ WHERE
         if codename in self.skip_list:
             return
         
-        #if lib.epoch2dt(epoch) >= datetime(2022, 11, 22):
+        #if lib.epoch2dt(epoch) >= datetime(2019, 3, 1):
         #    print("here")
 
         z = self.zztickers.get(codename, Zigzag({
@@ -162,12 +165,12 @@ WHERE
                 "endep": epoch,
                 "size": size,
                 "middle_size": middle_size,
-                "use_master": self.use_master
+                "use_master": self.use_master,
+                "config_path": config_path
             }))
         if z.tick(epoch) == False:
             return
         
-        t = self.codetickers.get(codename, )
 
         (zz_ep, zz_dt, zz_dirs, zz_prices, _) = z.getData(startep=startep) # we use zz_dt for debug
 
@@ -186,7 +189,8 @@ WHERE
                 "granularity": granularity,
                 "startep": startep - size*unitsecs*2,
                 "endep": epoch,
-                "use_master": self.use_master
+                "use_master": self.use_master,
+                "config_path": config_path
             }))
         (_, _, _, h, l, c, v) = t.getPrice(epoch)
         if v < self.min_vols:
@@ -313,7 +317,7 @@ WHERE
 
         trade_pos_key = int(s/cnt)
         #diff2 = abs(c - trade_pos_key)*2
-        if abs(c - trade_pos_key) > tp_diff:
+        if abs(c - trade_pos_key) > tp_diff/2:
             return
 
         # check if some recent peaks touched the trade_pos_key
@@ -486,10 +490,13 @@ VALUES('%s', '%s', %d, '%s', %f, %d, %d, %d,
     con["trend_rate"], con["long_candle"], con["chiko"],
     con["len_std"], con["hara_rate"], con["up_hige_rate"], con["dw_hige_rate"], con["len_avg"], con["reversed_cnt"]
 )
-        self.maindb.execSql(sql)
+        try:
+            self.maindb.execSql(sql)
+        except Exception as e:
+            print(e)
 
     
-    def onTick(self, epoch):
+    def bkonTick(self, epoch):
         granularity = granularity = self.timeTicker.granularity
         unitsecs = tradelib.getUnitSecs(granularity)
         if self.ticker == None:
@@ -525,7 +532,7 @@ VALUES('%s', '%s', %d, '%s', %f, %d, %d, %d,
     
         return orders
     
-    def bkonTick(self, epoch):
+    def onTick(self, epoch):
         granularity = self.timeTicker.granularity
         unitsecs = tradelib.getUnitSecs(granularity)
         if self.ticker is None:
@@ -548,7 +555,7 @@ VALUES('%s', '%s', %d, '%s', %f, %d, %d, %d,
         orders = []
 
         def process_code(codename):
-            target = self.checkCode(codename, ep, unitsecs, thresholds=self.thresholds)
+            target = self.checkCode(codename, ep, unitsecs, thresholds=self.thresholds, config_path=env.config_path)
             if target is not None:
                 order = self.getOrder(codename, ep, unitsecs, target)
                 if order is not None:
@@ -558,12 +565,20 @@ VALUES('%s', '%s', %d, '%s', %f, %d, %d, %d,
                     return order
             return None
 
-        with ThreadPoolExecutor(max_workers=len(codes)) as executor:
-            futures = {executor.submit(process_code, codename): codename for codename in codes}
-            for future in as_completed(futures):
-                result = future.result()
-                if result is not None:
-                    orders.append(result)
+        i = 0
+        while True:
+            code_group = codes[i:i+MAX_THREADS]
+            with ThreadPoolExecutor(max_workers=len(code_group)) as executor:
+                futures = {executor.submit(process_code, codename): codename for codename in code_group}
+                for future in as_completed(futures):
+                    result = future.result()
+                    if result is not None:
+                        orders.append(result)
+            i += MAX_THREADS
+            if i >= len(codes):
+                break
+            time.sleep(1)
+            
         
         return orders
 
@@ -612,16 +627,19 @@ if __name__ == "__main__":
         if codename in ["4385.T", "5253.T"]:
             continue
         codes.append(codename)
+
+    codes = []
+
     args = {
         "codenames": codes,
         "use_master": True,
         "analize_mode": True,
         "n_targets": 1000,
-        "trade_name": "zzanal2"}
+        "trade_name": "zzanal3"}
     strategy = ZigzagStrategy(args)
     ticker = TimeTicker("D", st, ed)
     executor = Executor()
-    portforio = Portoforio("zzanal2", 1000000000, 1000000000)
+    portforio = Portoforio("zzanal3", 1000000000, 1000000000)
     tm = TradeManager("Anal zigzag strategy", ticker, strategy, executor, portforio)
     report = tm.run(endep=ed, orderstopep=os)
         

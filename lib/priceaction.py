@@ -5,39 +5,30 @@ import numpy as np
 def _checkTrendRate(cl):
     u_cnt = 0
     d_cnt = 0
-    le = len(cl)
-    for i in range(1, le):
-        if cl[i] - cl[i-1] > 0:
-            u_cnt += 1
-        elif cl[i] - cl[i-1] < 0:
-            d_cnt += 1
+    s = 0
     
-    le = le - 1
-    ur = u_cnt/le
-    dr = d_cnt/le
-    trend_rate1 = max(ur, dr)
-    if dr > ur:
-        trend_rate1 *= -1
-    
-    u_cnt = 0
-    d_cnt = 0
-    le = len(cl)
-    for i in range(2, le):
-        if cl[i] - cl[i-2] > 0:
-            u_cnt += 1
-        elif cl[i] - cl[i-2] < 0:
-            d_cnt += 1
-    
-    le = le - 2
-    ur = u_cnt/le
-    dr = d_cnt/le
-    trend_rate2 = max(ur, dr)
-    if dr > ur:
-        trend_rate2 *= -1
-    
-    return (trend_rate1+trend_rate2)/2
+    s_cnt = len(cl)-2
+    for j in range(s_cnt):
+        u_cnt = 0
+        d_cnt = 0
+        k = j+1
+        for i in range(k, len(cl)):
+            if cl[i] - cl[i-k] > 0:
+                u_cnt += 1
+            elif cl[i] - cl[i-k] < 0:
+                d_cnt += 1
 
-    #return max(trend_rate1, trend_rate2)
+        le = len(cl) - j - 1
+        ur = u_cnt/le
+        dr = d_cnt/le
+        trend_rate = max(ur, dr)
+        if dr > ur:
+            trend_rate *= -1
+    
+        s += trend_rate
+    
+    return s/s_cnt
+
     
 def checkTrendRate(hl, ll, cl):
     hr = _checkTrendRate(hl)
@@ -80,8 +71,11 @@ def checkLastCandle(ol, hl, ll, cl):
     if o <= 0 or h <= 0 or l <= 0 or c <= 0:
         return
         
-    last_len = h - l
-    hara_rate = (c - o)/last_len
+    last_len = float(h - l)
+    if last_len == 0:
+        return
+
+    hara_rate = float((c - o)/last_len)
 
     up_hige_rate = (h-max(c, o))/last_len
     dw_hige_rate = (min(c, o)-l)/last_len

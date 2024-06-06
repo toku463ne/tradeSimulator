@@ -189,5 +189,5 @@ if __name__ == "__main__":
 
     st = lib.dt2str(datetime(year=2016, month=4, day=1))
     ed = lib.dt2str(datetime(year=2024, month=4, day=1))
-    #importData("D", st, ed, sleep_interval=3)
-    importData("mo1", st, ed, sleep_interval=3)
+    importData("D", st, ed, sleep_interval=3)
+    #importData("mo1", st, ed, sleep_interval=3)

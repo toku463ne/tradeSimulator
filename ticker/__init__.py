@@ -6,6 +6,7 @@ from event.tick import TickEvent
 from consts import *
 from db.mysql import MySqlDB
 import lib
+import env
 
 class Ticker(object):
     def __init__(self, config):
@@ -17,6 +18,11 @@ class Ticker(object):
         self.use_master = config.get("use_master", False)
         self.save_db = config.get("save_db", False)
         self.recreate = config.get("recreate", False)
+        config_path = config.get("config_path", "")
+        
+        # need this for multi threading
+        if config_path != "":
+            env.loadConf(config_path)
         
         dg = data_getter.getDataGetter(self.codename, self.granularity)
         self.dg = dg

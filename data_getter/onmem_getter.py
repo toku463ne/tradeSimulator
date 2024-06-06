@@ -54,8 +54,10 @@ class OnMemGetter(DataGetter):
                     child_endep = min(startep + self.extendSize * self.unitsecs, nowep)
             else:
                 child_endep = endep
+            #(ep, dt, o, h, l, c, v) = self.childDG.getPrices(startep, 
+            #        child_endep, waitDownload, buff_size=self.extendSize/2)
             (ep, dt, o, h, l, c, v) = self.childDG.getPrices(startep, 
-                    child_endep, waitDownload, buff_size=self.extendSize/2)
+                    child_endep, waitDownload)
             self.ep = ep
             self.dt = dt
             self.o = o
@@ -165,8 +167,10 @@ class OnMemGetter(DataGetter):
         return -1
 
     def _extendPrices(self, child_startep, child_endep, extendAfter=True,waitDownload=True):
+        #(ep, dt, o, h, l, c, v) = self.childDG.getPrices(child_startep, 
+        #            child_endep, waitDownload, buff_size=self.extendSize)
         (ep, dt, o, h, l, c, v) = self.childDG.getPrices(child_startep, 
-                    child_endep, waitDownload, buff_size=self.extendSize)
+                    child_endep, waitDownload)
         if extendAfter:
             self.ep.extend(ep)
             self.dt.extend(dt)

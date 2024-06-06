@@ -16,10 +16,11 @@ class TestPriceaction(unittest.TestCase):
 
 
     def test_checkTrendRate(self):
-        self._checkTrendRate("4751.T", datetime(2020,10,25), datetime(2020,11,2), -2, True) # 4751.T_20201102.png
+        self._checkTrendRate("4185.T", datetime(2019, 2, 25), datetime(2019, 3, 2), -7, True) # 4185.T_20190302.png
+        self._checkTrendRate("1435.T", datetime(2018,4,10), datetime(2018,4,17), 5, True)
+        self._checkTrendRate("1435.T", datetime(2018,3,25), datetime(2018,4,3), 9, True)
         self._checkTrendRate("1435.T", datetime(2018,2,25), datetime(2018,3,5), -9, True)
-        self._checkTrendRate("1435.T", datetime(2018,3,25), datetime(2018,4,3), 8, True)
-        self._checkTrendRate("1435.T", datetime(2018,4,10), datetime(2018,4,17), 4, False)
+        self._checkTrendRate("4751.T", datetime(2020,10,25), datetime(2020,11,2), 0, False) # 4751.T_20201102.png
         
         
 

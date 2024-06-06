@@ -10,8 +10,10 @@ class PgGetter(DataGetter):
         self.pgdf = PgDfGetter(childDG, is_dgtest=is_dgtest)
         self.unitsecs = self.pgdf.unitsecs
 
-    def getPrices(self, startep, endep, waitDownload=True, buff_size=0):
-        df = self.pgdf.getPrices(startep, endep, waitDownload, buff_size=buff_size)
+    #def getPrices(self, startep, endep, waitDownload=True, buff_size=0):
+    #    df = self.pgdf.getPrices(startep, endep, waitDownload, buff_size=buff_size)
+    def getPrices(self, startep, endep, waitDownload=True):
+        df = self.pgdf.getPrices(startep, endep, waitDownload)
         eps = df.ep.values.tolist()
         #dt = df.DT.values.tolist()
         #dt = df.DT.values.astype(datetime.datetime)
@@ -31,3 +33,6 @@ class PgGetter(DataGetter):
         
     def truncate(self):
         self.pgdf.truncate()
+
+    def getCtrlInfo(self):
+        return self.pgdf.getCtrlInfo()
