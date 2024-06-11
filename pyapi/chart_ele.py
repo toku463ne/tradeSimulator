@@ -58,8 +58,8 @@ open_epoch >= %d and open_epoch <= %d
     for (order_id, side, open_epoch, open_price, close_epoch, close_price) in pgdb.execSql(sql):
         trades[order_id] = {
             "side": side,
-            "open": {"epoch": open_epoch, "price": open_price},
-            "close": {"epoch": close_epoch, "price": close_price}
+            "open": {"epoch": open_epoch * 1000, "price": open_price},
+            "close": {"epoch": close_epoch * 1000, "price": close_price}
         }
 
     return trades

@@ -1,0 +1,11 @@
+trade_name: zzstrat_top300vol
+use_master: yes
+analize_mode: yes
+n_targets": 300
+granularity: D
+buy_budget: 1000000000
+sell_budget: 1000000000
+start_date: 2018-01-01
+end_date: 2024-01-01
+exclude_codes: 
+  - "^%"

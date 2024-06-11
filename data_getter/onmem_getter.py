@@ -40,6 +40,7 @@ class OnMemGetter(DataGetter):
     def getPrices(self, startep, endep, waitDownload=True):
         nowep = lib.nowepoch()
         endep = min(nowep, endep)
+        ep = None
 
         starti = self.getIndex(startep)
         endi = self.getIndex(endep)
@@ -95,7 +96,6 @@ class OnMemGetter(DataGetter):
                 child_endep = endep
                 self._extendPrices(child_startep, child_endep, True, waitDownload)
             else:
-                ep = self.ep
                 for i in range(len(ep)):
                     if startep > ep[i]:
                         startep = ep[i]
@@ -110,6 +110,7 @@ class OnMemGetter(DataGetter):
                 
                 self._extendPrices(child_startep, child_endep, True, waitDownload)
             elif endep > self.ep[0]:
+                ep = self.ep
                 for i in range(len(ep)):
                     if endep > ep[i]:
                         endep = ep[i]

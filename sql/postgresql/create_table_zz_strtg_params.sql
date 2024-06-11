@@ -1,6 +1,9 @@
 CREATE TABLE IF NOT EXISTS zz_strtg_params (
     order_id VARCHAR(100),
     codename VARCHAR(50),
+    side SMALLINT, 
+    takeprofit_price FLOAT, 
+    stoploss_price FLOAT,
     EP INT NOT NULL,
     DT TIMESTAMP,
     price FLOAT,
@@ -9,9 +12,10 @@ CREATE TABLE IF NOT EXISTS zz_strtg_params (
     trade_pos_key INT,
     tp_diff FLOAT,
     prefer_recent_peaks INT,
+    peak_broken SMALLINT,
     mado FLOAT,
+    acc FLOAT,
     trend_rate FLOAT,
-    long_candle INT,
     chiko FLOAT,
     len_std FLOAT,
     hara_rate FLOAT,
@@ -19,5 +23,6 @@ CREATE TABLE IF NOT EXISTS zz_strtg_params (
     dw_hige_rate FLOAT,
     len_avg FLOAT,
     reversed_cnt INT,
+    momiai FLOAT,
     PRIMARY KEY (order_id)
 );

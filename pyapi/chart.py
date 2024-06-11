@@ -7,20 +7,11 @@ import data_getter
 import json
 import pyapi.chart_ele as ele
 
+
 class Chart(object):
-    def adjust_data(self, data):
-        start = data["start_date"]
-        end = data["end_date"]
-        if len(start) == 10:
-            start = start + "T00:00:00"
-            end = end + "T00:00:00"
-        data["start_date"] = start
-        data["end_date"] = end
-        return data
-
-
+    
     def get_data(self,data):
-        data = self.adjust_data(data) 
+        data = lib.adjust_data(data) 
         codename = data["codename"]
         granularity = data["granularity"]
         start = data["start_date"]
@@ -72,7 +63,7 @@ class Chart(object):
         if "trade_name" not in data.keys():
             return '{}'
 
-        data = self.adjust_data(data)
+        data = lib.adjust_data(data)
             
         tradename = data["trade_name"]
         codename = data["codename"]

@@ -308,7 +308,7 @@ function setIndicatorSeries(name, chart, xaxis, yaxis, data) {
 
 function setBacktestSeries(chart, xaxis, yaxis, data) {
   //var bulletShape = nil
-  var color = 0x3386FF //blue
+  var color = 0x32CD32 //blue
   if (data["side"] == -1) {
     color = 0xFF3633 //red   
   } 
@@ -318,7 +318,8 @@ function setBacktestSeries(chart, xaxis, yaxis, data) {
     xAxis: xaxis,
     yAxis: yaxis,
     valueYField: "Price",
-    stroke: am5.color(color),
+    stroke: am5.color(color, alpha=.5),
+    alpha: .5,
     valueXField: "Date",
     strokeWidth: 3,
     strokeOpacity: 0.2,
@@ -444,6 +445,7 @@ function setBacktestSeries(chart, xaxis, yaxis, data) {
   
   var btdata = getBacktestData()
   for (let orderId in btdata) {
+    console.log(btdata[orderId])
     setBacktestSeries(chart, dateAxis, valueAxis, btdata[orderId])
   }
   

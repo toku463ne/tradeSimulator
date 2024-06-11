@@ -2,6 +2,7 @@ CREATE TABLE IF NOT EXISTS trade_history (
     "trade_name" VARCHAR(50),
     "epoch" INT,
     "reference_datetime" TIMESTAMP, 
+    "cmd" VARCHAR(50),
     "order_id" VARCHAR(100),
     "codename" VARCHAR(50),
     "side" SMALLINT,

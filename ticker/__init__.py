@@ -170,6 +170,8 @@ values('%s', '%s', %d, %d, '%s', '%s')""" % (self.table, self.codename, startep,
         return self.eps[i]
 
     def getPrice(self, ep):
+        #if ep == 1523836800:
+        #    print(lib.epoch2dt(1523836800))
         if self.tick(ep) == False:
             if self.err == TICKER_ERR_EOF and self.index == -1:
                 self._resetData(ep)

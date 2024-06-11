@@ -1,4 +1,12 @@
-import os, sys, time
+"""
+TODO:
+dai in sen
+mado + sita kasa
+momiai indicator
+
+"""
+
+import os, sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
@@ -22,12 +30,12 @@ class ZigzagStrategy(Strategy):
         self.codes = args.get("codes", [])
         self.size = args.get("size", 10)
         self.middle_size = args.get("middle_size", 5)
-        self.period = args.get("period", 200)
+        self.period = args.get("period", 180)
         self.n_targets = args.get("n_targets", 100)
         self.diff_rate = args.get("diff_percent", 0.01)
         self.max_fund = args.get("max_fund", 1000000)
         self.profit_rate = args.get("profit_rate", 0.02)
-        self.loss_rate = args.get("loss_rate", 0.02)
+        self.loss_rate = args.get("loss_rate", 0.015)
         self.codenames = args.get("codenames", [])
         self.exclude_codes = args.get("exclude_codes", [])
         self.trade_mode = args.get("trade_mode", TRADE_MODE_ONLY_BUY)
@@ -35,28 +43,28 @@ class ZigzagStrategy(Strategy):
         self.chiko_span = args.get("chiko_span", 26)
         self.min_price = args.get("min_price", 1000)
         self.min_vols = args.get("min_vols", 100000)
-        self.thresholds = args.get("thresholds", {
-                "long_candle": True,
-                "prefer_recent_peaks": False,
-                "mado": 0.002,
-                "trend_rate": 0.3,
-                "chiko": 0.0,
-                "reverse_cnt_limit": 0
-            })
+        #self.thresholds = args.get("thresholds", {
+        #        "long_candle": True,
+        #        "prefer_recent_peaks": False,
+        #        "mado": 0.002,
+        #        "trend_rate": 0.3,
+        #        "chiko": 0.0,
+         #       "reverse_cnt_limit": 0
+         #   })
         self.trade_name = args.get("trade_name", "")
         self.skip_list = []
         self.analize_mode = args.get("analize_mode", False)
-        if self.analize_mode:
-            self.thresholds = {
-                "long_candle": False,
-                "prefer_recent_peaks": False,
-                "mado": 0.0,
-                "trend_rate": 0.0,
-                "chiko": 0.0,
-                "reverse_cnt_limit": self.middle_size
-            }
-        self.epiration_limit = args.get("epiration_limit", self.size)
-        self.epiration_middle = args.get("epiration_middle", int(self.size/2))      
+        #if self.analize_mode:
+        #    self.thresholds = {
+        #        "long_candle": False,
+        #        "prefer_recent_peaks": False,
+        #        "mado": 0.0,
+        #        "trend_rate": 0.0,
+        #        "chiko": 0.0,
+        #        "reverse_cnt_limit": self.middle_size
+        #    }
+        self.epiration_limit = args.get("epiration_limit", self.middle_size)
+        self.epiration_middle = args.get("epiration_middle", int(self.middle_size/2)+1)      
 
         # how many times to hold trade on the same peak position
         self.trade_hold_cnt = args.get("trade_hold_cnt", self.middle_size) 
@@ -68,6 +76,8 @@ class ZigzagStrategy(Strategy):
         self.masterdb = PostgreSqlDB(is_master=self.use_master)
         self.maindb = PostgreSqlDB(is_master=False)
         self.maindb.createTable("zz_strtg_params")
+
+        self.maindb.execSql("delete from zz_strtg_params where order_id like '%%%s';" % self.trade_name)
 
         self.orders = {}
 
@@ -136,14 +146,7 @@ WHERE
 
 
 
-
-    def checkCode(self, codename, epoch, unitsecs, thresholds={
-        "long_candle": True,
-        "prefer_recent_peaks": False,
-        "mado": 0.002,
-        "trend_rate": 0.3,
-        "chiko": 0.8
-    }, config_path=""):
+    def checkCode(self, codename, epoch, unitsecs, ticker, config_path=""):
         cond_vals = {}
         granularity = self.timeTicker.granularity
         size = self.size
@@ -155,7 +158,7 @@ WHERE
         if codename in self.skip_list:
             return
         
-        #if lib.epoch2dt(epoch) >= datetime(2019, 3, 1):
+        #if lib.epoch2dt(epoch) >= datetime(2018, 1, 26):
         #    print("here")
 
         z = self.zztickers.get(codename, Zigzag({
@@ -174,7 +177,7 @@ WHERE
 
         (zz_ep, zz_dt, zz_dirs, zz_prices, _) = z.getData(startep=startep) # we use zz_dt for debug
 
-        if zz_dt is None or len(zz_dt) < 3:
+        if zz_dt is None or len(zz_dt) < 2:
             return
 
         # skip if the price is less than the threshold
@@ -184,21 +187,13 @@ WHERE
 
         #peaks = sorted(list(zz_prices))
         
-        t = self.codetickers.get(codename, Ticker({
-                "codename": codename,
-                "granularity": granularity,
-                "startep": startep - size*unitsecs*2,
-                "endep": epoch,
-                "use_master": self.use_master,
-                "config_path": config_path
-            }))
-        (_, _, _, h, l, c, v) = t.getPrice(epoch)
+        
+        (_, _, _, h, l, c, v) = ticker.getPrice(epoch)
         if v < self.min_vols:
             return
         
-        
 
-        (eps, dt, ol, hl, ll, cl, vl) = t.getData(n=middle_size+chiko_span)
+        (eps, dt, ol, hl, ll, cl, vl) = ticker.getData(n=middle_size+chiko_span)
         if dt is None:
             self.skip_list.append(codename)
             return
@@ -206,12 +201,15 @@ WHERE
         
         if len(ol) < middle_size:
             return
-
+        
+        if len(eps) <= chiko_span:
+            return
+        
         max_h = max(hl[chiko_span:])
         min_l = min(ll[chiko_span:])
 
-        if (min_l != l and min_l != ll[-2]) and (max_h != h and max_h != hl[-2]):
-            return
+        #if (min_l != l and min_l != ll[-2]) and (max_h != h and max_h != hl[-2]):
+        #    return
 
         last_dir = zz_dirs[-1]
         last_peak = zz_prices[-1]
@@ -252,7 +250,7 @@ WHERE
         else:
             last_peak_ep = zz_ep[-2]
         candle_cnt = 0
-        for i in range(middle_size+chiko_span):
+        for i in range(middle_size):
             j = i + 1
             if eps[-j] < last_peak_ep:
                 break
@@ -260,8 +258,18 @@ WHERE
                 candle_cnt += 1
             
         # in case it is less than middle, we consider not enough
-        if candle_cnt < middle_size:
+        if candle_cnt < middle_size-2:
             return
+        
+
+        # not enough data
+        candle_cnt = 0
+        for i in range(size):
+            if vl[-i-1] > 0:
+                candle_cnt += 1
+        if candle_cnt < size-2:
+            return
+
 
         if last_peak_ep >= eps[-middle_size]:
             if trend == 1 and min_l != last_peak and min_l < last_peak + diff:
@@ -286,23 +294,45 @@ WHERE
         #            zz_dirs[i] < zz_dirs[i-1] and zz_prices[i] < zz_prices[i-1]: 
         #            peaks.append(zz_prices[i])
 
-        peaks = sorted(list(zz_prices))
+        reverse = False
+        if trend > 0:
+            reverse = True
+
+        if abs(zz_dirs[-1]) == 1:
+            peaks = sorted(list(zz_prices[:-1]), reverse=reverse)
+        else:
+            peaks = sorted(list(zz_prices), reverse=reverse)
         
-        base = 0
-        if trend == 1:
-            base = max_h
-        elif trend == -1:
-            base = min_l
+        #base = 0
+        #if trend == 1:
+        #    base = max_h
+        #elif trend == -1:
+        #    base = min_l
+        #
+        #cnt = 0
+        #s = 0
+        #for peak in peaks:
+        #    if peak - diff <= base and peak + diff >= base:
+        #        cnt += 1
+        #        s += peak
+        #    elif peak - diff > base:
+        #        break
         
-        cnt = 0
-        s = 0
+        trade_pos_key = 0
         for peak in peaks:
-            if peak - diff <= base and peak + diff >= base:
-                cnt += 1
-                s += peak
-            elif peak - diff > base:
+            if (peak + diff*trend)*trend < c*trend:
                 break
+            trade_pos_key = peak
+
         
+
+        if trade_pos_key == 0:
+            return
+
+        if abs(c - trade_pos_key) > tp_diff:
+            return
+
+
                     
         #tp_diff = 0
         #if trend == 1:
@@ -312,29 +342,26 @@ WHERE
 
 
         # If there are already more than 2 closer peaks, current price could be the next peak
-        if cnt == 0:
-            return
+        #if cnt == 0:
+        #    return
 
-        trade_pos_key = int(s/cnt)
+        #trade_pos_key = int(s/cnt)
+
         #diff2 = abs(c - trade_pos_key)*2
-        if abs(c - trade_pos_key) > tp_diff/2:
-            return
+        #if abs(c - trade_pos_key) > tp_diff/2:
+        #    return
+
 
         # check if some recent peaks touched the trade_pos_key
         reversed_cnt = 0
-        for i in range(middle_size*2-2):
-            j = i + 3
-            if trend > 0 and hl[-j] + diff >= trade_pos_key:
+        for i in range(2, size):
+            if trend > 0 and hl[-i] + diff >= trade_pos_key:
                 reversed_cnt += 1
-                
-            if trend < 0 and ll[-j] - diff <= trade_pos_key:
+            if trend < 0 and ll[-i] - diff <= trade_pos_key:
                 reversed_cnt += 1
 
 
         cond_vals["reversed_cnt"] = reversed_cnt
-        if reversed_cnt > thresholds["reverse_cnt_limit"]:
-            return
-
 
         # If the peak is updated by the last peak, skip the peak
         skip = False
@@ -347,22 +374,22 @@ WHERE
             if k >= 4:
                 break 
 
-        if thresholds["prefer_recent_peaks"] and skip:
-            return
-
         cond_vals["prefer_recent_peaks"] = skip
 
 
-        mado = pa.checkMado(ol, hl, ll)
-        if thresholds["mado"] > 0 and mado > thresholds["mado"]:
-            return
+        # if the peak is broken by the recent price
+        cond_vals["peak_broken"] = (min(ll[-size:]) < trade_pos_key-diff) and (max(hl[-size:]) > trade_pos_key+diff)
+
+
+
+        mado = pa.checkMado(ol, hl, ll, cl)
         cond_vals["mado"] = mado
 
+        acc = pa.checkAccumulation(ol, cl)
+        cond_vals["acc"] = acc
 
         # Check candles
         trend_rate, has_trend = pa.checkTrendRate(hl[-middle_size:],ll[-middle_size:],cl[-middle_size:])
-        if thresholds["trend_rate"] > 0 and ((trend_rate < thresholds["trend_rate"]) or has_trend == False):
-            return
         cond_vals["trend_rate"] = trend_rate
 
         if has_trend and trend_rate*trend < 0:
@@ -384,9 +411,7 @@ WHERE
         cond_vals["len_avg"] = len_avg
 
 
-        res = len_std > 1.0 and hara_rate >= 0.9
-        if thresholds["long_candle"] and res:
-            return
+        res = len_std > 1.5 and abs(hara_rate) >= 0.7
         cond_vals["long_candle"] = bool(res)
 
 
@@ -394,23 +419,28 @@ WHERE
         d_rate, u_rate = pa.checkChiko(cl, chiko_span=chiko_span)
         if trend == -1:
             cond_vals["chiko"] = d_rate
-            if thresholds["chiko"] > 0 and d_rate >= thresholds["chiko"]:
-                return
         elif trend == 1:
             cond_vals["chiko"] = u_rate
-            if thresholds["chiko"] > 0 and u_rate >= thresholds["chiko"]:
-                return
+
+        if trend == -1:
+            price = min(trade_pos_key + diff, c)
+        if trend == 1:
+            price = max(trade_pos_key - diff, c)
+
+        cond_vals["tp_diff"] = tp_diff
+
+        cond_vals["momiai"] = pa.checkMomiai(hl[-size:], ll[-size:])
 
         return {
-            "ticker": t,
-            "price": c,
+            "ticker": ticker,
+            "price": price,
             "tp_diff": tp_diff,
             "trade_pos_key": trade_pos_key,
             "trend": trend,
             "cond_vals": cond_vals
         }
             
-    def getOrder(self, codename, epoch, unitsecs, target):
+    def getOrder(self, codename, epoch, target, unitsecs):
         trade_mode = self.trade_mode
         trade_poses = self.trade_poses.get(codename, {})
         trade_hold_cnt = self.trade_hold_cnt
@@ -450,14 +480,18 @@ WHERE
         #if tp_diff * units < self.min_profit:
         #    return
 
-        takeprofit = price + tp_diff*side
+        #takeprofit = price + tp_diff*side
         #stoploss = price - tp_diff*side
         stoploss = float(trade_pos_key) - tp_diff*side
-        diff = price * self.diff_rate    
+        diff = abs(price - stoploss)
+        takeprofit = price + diff*side
+
+        #diff = price * self.diff_rate
+        order_expiration = epoch + unitsecs*3    
 
         order = self.createStopOrder(epoch, t, side, units, price, name=self.trade_name,
-            validep=0, takeprofit=takeprofit, stoploss=stoploss, 
-            desc="op:%f line:%d diff:%f tp:%f" % (price, trade_pos_key, diff, tp_diff))
+            validep=0, takeprofit=takeprofit, stoploss=stoploss, order_expiration=order_expiration,
+            desc="op:%f line:%d diff:%f tp:%f" % (price, trade_pos_key, diff, tp_diff), args=target["cond_vals"])
         
         #v = target["cond_vals"]
         #print("%s prefer_recent_peaks=%d mado=%d trend_rate=%d chiko=%f" % (
@@ -470,25 +504,33 @@ WHERE
         return order
 
     # codename, epoch, dt, i+1, target
-    def insertTradeInfo(self, order_id, codename, epoch, dt, rank, target):
-        self.maindb.execSql("DELETE FROM zz_strtg_params WHERE order_id = '%s';" % order_id)
+    def insertTradeInfo(self, order_id, codename, epoch, dt, rank, target, order):
+        #self.maindb.execSql("DELETE FROM zz_strtg_params WHERE order_id = '%s';" % order_id)
 
         con = target["cond_vals"]
         sql = """INSERT INTO zz_strtg_params(
-    order_id, codename, EP, DT, price, trend, vol_rank, trade_pos_key,
-    tp_diff, prefer_recent_peaks, mado, 
-    trend_rate, long_candle, chiko,
-    len_std, hara_rate, up_hige_rate, dw_hige_rate, len_avg, reversed_cnt
+    order_id, codename, EP, DT, price, 
+    side, takeprofit_price, stoploss_price,
+    trend, vol_rank, trade_pos_key,
+    tp_diff, prefer_recent_peaks, peak_broken, mado, acc,
+    trend_rate, chiko,
+    len_std, hara_rate, up_hige_rate, dw_hige_rate, len_avg, 
+    reversed_cnt, momiai
 )
-VALUES('%s', '%s', %d, '%s', %f, %d, %d, %d,
-%f, %d, %f, 
-%f, %d, %f,
-%f, %f, %f, %f, %f, %d);
+VALUES('%s', '%s', %d, '%s', %f, 
+%d, %f, %f,
+%d, %d, %d,
+%f, %d, %d, %f, %f,
+%f, %f,
+%f, %f, %f, %f, %f, 
+%d, %f);
 """ % (
     order_id, codename, epoch, dt, target["price"], target["trend"], rank, target["trade_pos_key"],
-    target["tp_diff"], con["prefer_recent_peaks"], con["mado"], 
-    con["trend_rate"], con["long_candle"], con["chiko"],
-    con["len_std"], con["hara_rate"], con["up_hige_rate"], con["dw_hige_rate"], con["len_avg"], con["reversed_cnt"]
+    order.side, order.takeprofit_price, order.stoploss_price, 
+    target["tp_diff"], con["prefer_recent_peaks"], con["peak_broken"], con["mado"], con["acc"],
+    con["trend_rate"], con["chiko"],
+    con["len_std"], con["hara_rate"], con["up_hige_rate"], con["dw_hige_rate"], con["len_avg"], 
+    con["reversed_cnt"], con["momiai"]
 )
         try:
             self.maindb.execSql(sql)
@@ -496,7 +538,7 @@ VALUES('%s', '%s', %d, '%s', %f, %d, %d, %d,
             print(e)
 
     
-    def bkonTick(self, epoch):
+    def __onTickSingle(self, epoch):
         granularity = granularity = self.timeTicker.granularity
         unitsecs = tradelib.getUnitSecs(granularity)
         if self.ticker == None:
@@ -521,9 +563,9 @@ VALUES('%s', '%s', %d, '%s', %f, %d, %d, %d,
         #for codename in codes:
         for i in range(len(codes)):
             codename = codes[i]
-            target = self.checkCode(codename, ep, unitsecs, thresholds=self.thresholds)
+            target = self.checkCode(codename, ep, unitsecs)
             if target is not None:
-                order = self.getOrder(codename, ep, unitsecs, target)
+                order = self.getOrder(codename, ep, target)
                 if order is not None:
                     local_order_id = order.localId
                     if self.analize_mode:
@@ -532,7 +574,7 @@ VALUES('%s', '%s', %d, '%s', %f, %d, %d, %d,
     
         return orders
     
-    def onTick(self, epoch):
+    def createOrders(self, epoch):
         granularity = self.timeTicker.granularity
         unitsecs = tradelib.getUnitSecs(granularity)
         if self.ticker is None:
@@ -554,14 +596,14 @@ VALUES('%s', '%s', %d, '%s', %f, %d, %d, %d,
         codes = self.getTargetCodes(ep)
         orders = []
 
-        def process_code(codename):
-            target = self.checkCode(codename, ep, unitsecs, thresholds=self.thresholds, config_path=env.config_path)
+        def process_code(codename, ticker):
+            target = self.checkCode(codename, ep, unitsecs, ticker, config_path=env.config_path)
             if target is not None:
-                order = self.getOrder(codename, ep, unitsecs, target)
+                order = self.getOrder(codename, ep, target, unitsecs)
                 if order is not None:
                     local_order_id = order.localId
                     if self.analize_mode:
-                        self.insertTradeInfo(local_order_id, codename, epoch, dt, codes.index(codename) + 1, target)
+                        self.insertTradeInfo(local_order_id, codename, epoch, dt, codes.index(codename) + 1, target, order)
                     return order
             return None
 
@@ -569,7 +611,27 @@ VALUES('%s', '%s', %d, '%s', %f, %d, %d, %d,
         while True:
             code_group = codes[i:i+MAX_THREADS]
             with ThreadPoolExecutor(max_workers=len(code_group)) as executor:
-                futures = {executor.submit(process_code, codename): codename for codename in code_group}
+                #futures = {executor.submit(process_code, codename): codename for codename in code_group}
+                futures = []
+                #if epoch == 1523836800:
+                #    print(lib.epoch2dt(1523836800))
+                for codename in code_group:
+                    if codename in self.codetickers.keys():
+                        ticker = self.codetickers[codename]
+                    else:
+                        ticker = Ticker({
+                            "codename": codename,
+                            "granularity": granularity,
+                            "startep": epoch - unitsecs*self.period - self.size*unitsecs*2,
+                            #"endep": epoch,
+                            #"startep": self.ticker.startep - unitsecs*self.period - self.size*unitsecs*2,
+                            "endep": self.ticker.endep,
+                            "use_master": self.use_master
+                        })
+                        self.codetickers[codename] = ticker
+                    
+                    futures.append(executor.submit(process_code, codename, ticker))
+
                 for future in as_completed(futures):
                     result = future.result()
                     if result is not None:
@@ -577,38 +639,63 @@ VALUES('%s', '%s', %d, '%s', %f, %d, %d, %d,
             i += MAX_THREADS
             if i >= len(codes):
                 break
-            time.sleep(1)
+            #time.sleep(1)
             
         
         return orders
 
 
-
-    def onSignal(self, epoch, event):
-        if event.cmd != ESTATUS_TRADE_OPENED:
-            return 
-
-        _id = event.id
-        order = self.orders.get(_id, {"count": 0, "event": event})
-        cnt = order["count"]
-        cnt += 1
-        
+    def checkTrade(self, epoch, order_id):
+        order = self.orders[order_id]
+        cnt = order["count"] + 1
+        event = order["event"]
         if cnt >= self.epiration_limit:
-            if _id in self.orders.keys():
-                del self.orders[_id]
-            return self.cancelOrder(epoch, _id)
+            if order_id in self.orders.keys():
+                del self.orders[order_id]
+            return self.cancelTrade(epoch, event)
 
-        if cnt >= self.epiration_middle:
-            side = event.side
-            price = event.price
-            (_, _, _, _, _, cur_price, _) = event.dg.getPrice(epoch)
-            if cur_price*side > price*side:
-                if _id in self.orders.keys():
-                    del self.orders[_id]
-                return self.cancelOrder(epoch, _id)
+        # change take profit price 
+        #if cnt >= self.epiration_middle:
+        #    side = event.side
+        #    price = event.trade_open_price
+            
+        #    order["count"] = cnt
+        #    order["changed"] = True
+        #    tp_diff = event.args["tp_diff"]
+        #    tp = price + side*tp_diff/2
+        #    return self.changeTrade(epoch, event, takeprofit_price=tp)
         
         order["count"] = cnt
+
+    def onError(self, epoch, event):
+        order = self.orders[event.id]
+        order["changed"] = False
+
+
+    def onTick(self, epoch):
+        orders = []
+        for order_id in list(self.orders.keys()):
+            order_inf = self.orders[order_id]
+            if order_inf["event"].status != ESTATUS_TRADE_OPENED:
+                continue
+            
+            event = self.checkTrade(epoch, order_id)
+            if event is not None:
+                orders.append(event)
+
+
+        new_orders = self.createOrders(epoch)
+        for order in new_orders:
+            self.orders[order.id] = {
+                "count": 0,
+                "event": order,
+                "changed": False
+            }
         
+        orders.extend(new_orders)
+        return orders
+
+
 
 
 
@@ -621,20 +708,23 @@ if __name__ == "__main__":
     ed = lib.str2epoch("2024-01-01T00:00:00")
     os = lib.str2epoch("2024-01-01T00:00:00")
     
+    '''
     sql = "SELECT distinct codename from bk_trades WHERE trade_name = 'anal_zigzag';"
     codes = []
     for (codename,) in PostgreSqlDB().execSql(sql):
         if codename in ["4385.T", "5253.T"]:
             continue
         codes.append(codename)
-
+    '''
+        
+    #codes = ["1570.T"]
     codes = []
 
     args = {
         "codenames": codes,
         "use_master": True,
         "analize_mode": True,
-        "n_targets": 1000,
+        "n_targets": 100,
         "trade_name": "zzanal3"}
     strategy = ZigzagStrategy(args)
     ticker = TimeTicker("D", st, ed)

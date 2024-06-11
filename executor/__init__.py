@@ -1,7 +1,7 @@
 from consts import *
 
 class Executor(object):
-    def cancelOrder(self, epoch, orderEvent):
+    def OLDcancelOrder(self, epoch, orderEvent):
         (_, _, _, h, l, c, _) = orderEvent.getPrice(epoch)
         price = (h+l+c)/3
         if orderEvent.status == ESTATUS_ORDER_OPENED:
@@ -46,16 +46,34 @@ class Executor(object):
 
     # TODO: Issue error when the order is strange
     def detectOrderChange(self, epoch, orderEvent):
-        (_, _, o, h, l, c, _) = orderEvent.getPrice(epoch)
+        (ep, dt, o, h, l, c, v) = orderEvent.getPrice(epoch)
+
+        if ep < epoch:
+            return
+
         side = orderEvent.side
         #price = (h+l+c)*1.0/3.0
+
         price = orderEvent.price
         expr = orderEvent.expiration
+        order_expr = orderEvent.order_expiration
 
-        if orderEvent.cmd == CMD_CANCEL:
+        if v == 0:
             return
-        
+
         if orderEvent.status == ESTATUS_ORDER_OPENED:
+            expired = False
+            if order_expr > 0 and order_expr <= epoch:
+                expired = True
+
+            if orderEvent.cmd in [CMD_CREATE_LIMIT_ORDER, CMD_CREATE_MARKET_ORDER, CMD_CREATE_STOP_ORDER]:
+                if expired:
+                    orderEvent.closeOrder(epoch, "expired")
+                    return orderEvent
+        
+
+            msg = ""
+
             if orderEvent.cmd == CMD_CREATE_MARKET_ORDER:
                 orderEvent.openTrade(epoch, o, orderEvent.desc)
                 return orderEvent
@@ -71,10 +89,14 @@ class Executor(object):
                     if side == SIDE_SELL and orderEvent.price < h:
                         orderEvent.openTrade(epoch, price, orderEvent.desc)
                         return orderEvent
-  
+                    
+            elif orderEvent.cmd == CMD_CANCEL:
+                orderEvent.closeOrder(epoch, "canceled")
+                return orderEvent
+
             else:
                 raise Exception("Non supported cmd")
-        
+            
         elif orderEvent.status == ESTATUS_TRADE_OPENED:
             tp = orderEvent.takeprofit_price
             sl = orderEvent.stoploss_price
@@ -83,6 +105,12 @@ class Executor(object):
             if expr > 0 and expr <= epoch:
                 expired = True
             msg = ""
+            canceled = False
+            if orderEvent.cmd == CMD_CANCEL:
+                canceled = True
+
+            if expired or canceled:
+                price = o
             
             if side == SIDE_BUY:
                 if sl > 0 and l < sl:
@@ -93,12 +121,11 @@ class Executor(object):
                     iswin = 1
                     msg = "takeprofit"
                     price = tp
-                elif expired:
+                elif expired or canceled:
                     if orderEvent.trade_open_price < price:
                         iswin = 1
                     else:
                         iswin = -1
-                    msg = "expired"
             elif side == SIDE_SELL:
                 if sl > 0 and h > sl:
                     iswin = -1
@@ -108,16 +135,21 @@ class Executor(object):
                     iswin = 1
                     msg = "takeprofit"
                     price = tp
-                elif expired:
+                elif expired or canceled:
                     if orderEvent.trade_open_price > price:
                         iswin = 1
                     else:
                         iswin = -1
-                    msg = "expired"
                 
+            if expired:
+                msg = "expired"
+            if canceled:
+                msg = "canceled"
             
             if iswin == 1 or iswin == -1:
                 orderEvent.closeTrade(epoch, price, msg)
+                return orderEvent
+            if orderEvent.cmd == CMD_CHANGE_TRADE:
                 return orderEvent
         elif orderEvent.status == ESTATUS_NONE:
             if orderEvent.cmd == CMD_CREATE_MARKET_ORDER or orderEvent.cmd == CMD_CREATE_STOP_ORDER:

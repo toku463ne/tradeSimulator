@@ -43,9 +43,48 @@ def checkTrendRate(hl, ll, cl):
 
     return (hr+lr+cr)/3, has_trend
 
-def checkMado(ol, hl, ll):
-    mado = max((ll[-1] - hl[-2])/ol[-1], (ll[-2] - hl[-1])/ol[-1])
+def checkAccumulation(ol, cl):
+    ol = np.array(ol)
+    cl = np.array(cl)
+    r = _checkTrendRate(cl-ol)
+    r = np.nan_to_num(r)
+    return r
+
+def _checkMomiai(hl, ll):
+    h = hl[-1]
+    l = ll[-1]
+    total = len(hl)
+    cnt = 0
+    for i in range(total):
+        if (l >= ll[i] and l <= hl[i]) or (h >= ll[i] and h <= hl[i]):
+            cnt += 1
+    
+    return cnt*1.0/total
+
+def checkMomiai(hl, ll, n_targets=2):
+    s = 0
+    for i in range(n_targets):
+        starti = n_targets -i -1
+        endi = i+1
+        s += _checkMomiai(hl[starti:-endi], ll[starti:-endi])
+
+    return s/n_targets
+
+
+
+def checkMado(ol, hl, ll, cl):
+    if ol[-1] > cl[-2] and ll[-1] < hl[-2]:
+        return 0.0
+    if ol[-1] < cl[-2] and hl[-1] > ll[-2]:
+        return 0.0
+
+    le = max(abs(ol[-1]-cl[-1]), abs(ol[-2]-cl[-2]))
+    if le == 0:
+        return 0.0
+    mado = abs((cl[-2] - ol[-1])/le)
     return float(mado)
+
+
 
 # Check std rate of the last cancle length
 # Check if there is window between the last and the one before last candle

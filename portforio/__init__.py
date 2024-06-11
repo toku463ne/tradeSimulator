@@ -37,12 +37,16 @@ class Portoforio(object):
         side = event.side
         status = event.status
         history = self.history
+
+        if status in [ESTATUS_ORDER_CLOSED]:
+            return
+
         h = {}
         h["buy_offline"] = 0
         h["buy_online"] = 0
         h["sell_offline"] = 0
         h["sell_online"] = 0
-        if status == ESTATUS_TRADE_OPENED or status == ESTATUS_TRADE_CLOSED:
+        if status in [ESTATUS_TRADE_OPENED, ESTATUS_TRADE_CLOSED]:
             if len(history) > 0:
                 h = self.last_hist
             h["epoch"] = epoch
@@ -72,17 +76,25 @@ class Portoforio(object):
                 "expiration": event.expiration,
                 "units": units
                 }
-            self.order_hist[orderId] = [orderId]
-            if side == SIDE_BUY:
-                h["buy_offline"] -= total
-                self.buy_fund -= total
-                h["buy_online"] += total
-            if side == SIDE_SELL:
-                h["sell_offline"] += total
-                self.sell_fund -= total
-                h["sell_online"] -= total
-            self.trade_count += 1
-            h["trade_count"] = self.trade_count
+            
+            if event.cmd == CMD_CHANGE_TRADE:
+                self.trades[orderId]["takeprofit_price"] = event.takeprofit_price
+                self.trades[orderId]["stoploss_price"] = event.stoploss_price
+                h["cmd"] = "order change"
+            else:
+                self.order_hist[orderId] = [orderId]
+                if side == SIDE_BUY:
+                    h["buy_offline"] -= total
+                    self.buy_fund -= total
+                    h["buy_online"] += total
+                    h["cmd"] = "open BUY"
+                if side == SIDE_SELL:
+                    h["sell_offline"] += total
+                    self.sell_fund -= total
+                    h["sell_online"] -= total
+                    h["cmd"] = "open SELL"
+                self.trade_count += 1
+                h["trade_count"] = self.trade_count
             
         if status == ESTATUS_TRADE_CLOSED:
             self.trades[orderId]["close"] = {
@@ -105,6 +117,7 @@ class Portoforio(object):
                 else:
                     self.trades[orderId]["result"] = "lose"
                     self.loses += 1
+                h["cmd"] = "close BUY"
             if side == SIDE_SELL:
                 h["sell_offline"] -= total
                 self.sell_fund += total
@@ -115,6 +128,7 @@ class Portoforio(object):
                 else:
                     self.trades[orderId]["result"] = "lose"
                     self.loses += 1
+                h["cmd"] = "close SELL"
             t = self.trades[orderId]
             print("[%s]: %s-%s code=%s open=%2f close=%2f side=%d desc=%s" % (t["result"],
                 lib.epoch2str(t["open"]["epoch"], "%Y%m%d"),lib.epoch2str(epoch, "%Y%m%d"), 
@@ -149,12 +163,14 @@ class Portoforio(object):
     def insertTradeHistory(self, h):
         sql = """insert into trade_history(trade_name, epoch, reference_datetime, order_id,
 codename, side, price, units, 
-buy_offline, buy_online, sell_offline, sell_online) 
+buy_offline, buy_online, sell_offline, sell_online, cmd) 
 values('%s', %d, '%s', '%s',
 '%s', %d, %f, %f,
-%f, %f, %f, %f)""" % (self.trade_name, h["epoch"], lib.epoch2str(h["epoch"]), h["orderId"],
+%f, %f, %f, %f,
+'%s')""" % (self.trade_name, h["epoch"], lib.epoch2str(h["epoch"]), h["orderId"],
 h["codename"], h["side"], h["price"], h["units"],
-h["buy_offline"], h["buy_online"], h["sell_offline"], h["sell_online"])
+h["buy_offline"], h["buy_online"], h["sell_offline"], h["sell_online"], 
+h["cmd"])
 
         self.db.execSql(sql)
         

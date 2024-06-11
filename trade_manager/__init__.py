@@ -68,7 +68,8 @@ class TradeManager(object):
         _id = orderEvent.id
         if orderEvent.cmd in [CMD_CREATE_STOP_ORDER,
                             CMD_CREATE_LIMIT_ORDER,
-                            CMD_CREATE_MARKET_ORDER]:
+                            CMD_CREATE_MARKET_ORDER,
+                            CMD_CANCEL]:
             purch_price = orderEvent.price * orderEvent.units
             portforio = self.portforio
             buy_fund = portforio.getBuyFund()
@@ -82,14 +83,14 @@ class TradeManager(object):
                 orderEvent.cmd = CMD_ORDER_ERROR
                 return False
 
-        if orderEvent.cmd == CMD_CANCEL:
-            if _id in self.orders.keys():
-                self.orders[_id].cmd = CMD_CANCEL
-                return True
-            else:
-                orderEvent.error_msg = "Tried to cancel a non existing order %s" % (str(_id))
-                orderEvent.cmd = CMD_ORDER_ERROR
-                return False
+        #if orderEvent.cmd == CMD_CANCEL:
+        #    if _id in self.orders.keys():
+        #        self.orders[_id].cmd = CMD_CANCEL
+        #        return True
+        #    else:
+        #        orderEvent.error_msg = "Tried to cancel a non existing order %s" % (str(_id))
+        #        orderEvent.cmd = CMD_ORDER_ERROR
+        #        return False
             
             #del self.orders[_id]
 
@@ -101,12 +102,13 @@ class TradeManager(object):
         #orderEvent = self.trans.pop()
         _id = orderEvent.id
         if _id in self.orders.keys():
-            if orderEvent.cmd != CMD_CANCEL:
-                raise Exception("id=%d already exists!" % _id)
+            if orderEvent.cmd not in [CMD_CANCEL, CMD_CHANGE_TRADE]:
+                raise Exception("id=%s already exists!" % _id)
 
         if orderEvent.cmd in [CMD_CREATE_STOP_ORDER,
                             CMD_CREATE_LIMIT_ORDER,
-                            CMD_CREATE_MARKET_ORDER]:
+                            CMD_CREATE_MARKET_ORDER,
+                            CMD_CHANGE_TRADE]:
             self.orders[_id] = orderEvent
         return True
 
@@ -126,10 +128,11 @@ class TradeManager(object):
         for _id in ids:
             orderEvent = self.orders[_id]
             signal = None
-            if orderEvent.cmd == CMD_CANCEL:
-                signal = self.executor.cancelOrder(epoch, orderEvent)
-            else:
-                signal = self.executor.detectOrderChange(epoch, orderEvent)
+            #if orderEvent.cmd == CMD_CANCEL:
+            #    signal = self.executor.cancelOrder(epoch, orderEvent)
+            #else:
+            #    signal = self.executor.detectOrderChange(epoch, orderEvent)
+            signal = self.executor.detectOrderChange(epoch, orderEvent)
             if signal != None:
                 signal_events.append(signal)
             if orderEvent.status in [ESTATUS_ORDER_CLOSED, ESTATUS_TRADE_CLOSED]:

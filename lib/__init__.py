@@ -41,7 +41,6 @@ def nowepoch():
 def epoch2weeknum(epoch):
     return int(epoch % (86400*7) / 86400)
 
-
 def npdt2dt(dt64):
     seconds_since_epoch = (dt64 - unix_epoch) / one_second
     return datetime.datetime.utcfromtimestamp(seconds_since_epoch)
@@ -93,4 +92,12 @@ def ensureDataDir(data_dir="", subdir=""):
     return data_dir
 
 
-    
+def adjust_data(data):
+    start = data["start_date"]
+    end = data["end_date"]
+    if len(start) == 10:
+        start = start + "T00:00:00"
+        end = end + "T00:00:00"
+    data["start_date"] = start
+    data["end_date"] = end
+    return data

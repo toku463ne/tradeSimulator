@@ -5,10 +5,13 @@ import lib
 class OrderEvent(object):
     def __init__(self, cmd, ticker=None, _id="", name="", epoch=0, side=0, 
                  units=0, validep=0,
-        price=0, takeprofit=0, stoploss=0, expiration=0, desc=""):
+        price=0, takeprofit=0, stoploss=0, expiration=0, order_expiration=0,
+        desc="", 
+        args={}):
         self.ticker = ticker
         data_getter = ticker.dg
         self.dg = data_getter
+        self.args = args
         self.id= _id
         self.localId = ""
         if data_getter != None:
@@ -39,8 +42,10 @@ class OrderEvent(object):
         self.takeprofit_price = takeprofit
         self.stoploss_price = stoploss
         self.expiration = expiration
+        self.order_expiration = order_expiration
         self.desc = desc
         self.elapsed = 0
+        self.last_change_epoch = epoch
         
         self.order_close_time = 0
         
@@ -81,6 +86,8 @@ class OrderEvent(object):
         self.trade_profit = price_diff*self.units
         self.desc = desc
         #return SignalEvent(self.id, ESTATUS_TRADE_CLOSED)
+
+        
         
     def closeOrder(self, epoch, desc=""):
         self.status = ESTATUS_ORDER_CLOSED
