@@ -175,7 +175,7 @@ codename = '%s'
         self._run(trade_name, "9503.T", st, ed, 1, SIDE_BUY, "win", datetime(2019, 1, 28))
     """
         
-
+    
     # momiai, peak_broken test
     def test_2503T(self):
         codename = "2503.T"

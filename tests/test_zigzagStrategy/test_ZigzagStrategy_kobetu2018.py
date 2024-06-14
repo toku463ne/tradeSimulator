@@ -16,7 +16,7 @@ class TestPeakStrategy(unittest.TestCase):
         granularity = "D"
         args = {"codename": codename, 
         "granularity": granularity, 
-        "codenames": ["5108.T"],
+        "codenames": ["9020.T"],
         "analize_mode": True,
         "use_master": True,
         "exclude_codes": ["^MSFT"],
@@ -24,7 +24,7 @@ class TestPeakStrategy(unittest.TestCase):
         strategy = ZigzagStrategy(args)
         ticker = TimeTicker(granularity, st, ed)
         executor = Executor()
-        portforio = Portoforio("test_zigzag_5108", 10000000, 0)
+        portforio = Portoforio("test_zigzag_9020", 10000000, 0)
         tm = TradeManager("zigzag strategy", ticker, strategy, executor, portforio)
         report = tm.run(endep=ed, orderstopep=os)
         #import json

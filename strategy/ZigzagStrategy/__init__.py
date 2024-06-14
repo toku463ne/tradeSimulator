@@ -158,8 +158,8 @@ WHERE
         if codename in self.skip_list:
             return
         
-        #if lib.epoch2dt(epoch) >= datetime(2018, 1, 26):
-        #    print("here")
+        if lib.epoch2dt(epoch) >= datetime(2018, 1, 31):
+            print("here")
 
         z = self.zztickers.get(codename, Zigzag({
                 "codename": codename,
@@ -525,8 +525,9 @@ VALUES('%s', '%s', %d, '%s', %f,
 %f, %f, %f, %f, %f, 
 %d, %f);
 """ % (
-    order_id, codename, epoch, dt, target["price"], target["trend"], rank, target["trade_pos_key"],
+    order_id, codename, epoch, dt, target["price"],
     order.side, order.takeprofit_price, order.stoploss_price, 
+    target["trend"], rank, target["trade_pos_key"],
     target["tp_diff"], con["prefer_recent_peaks"], con["peak_broken"], con["mado"], con["acc"],
     con["trend_rate"], con["chiko"],
     con["len_std"], con["hara_rate"], con["up_hige_rate"], con["dw_hige_rate"], con["len_avg"], 

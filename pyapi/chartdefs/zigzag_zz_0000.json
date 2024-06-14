@@ -8,8 +8,12 @@
             "size": 10,
             "middle_size": 5,
             "type": "zigzag"
+        },
+        "sma100": {
+            "span": 100,
+            "type": "sma"
         } 
     },
-    "trade_name": "zzstrat_top300vol"
+    "trade_name": "zzstrat_top1000vol"
 }
       
