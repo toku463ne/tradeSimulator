@@ -1,1 +1,10 @@
-9020
+SELECT t.result, t.side
+trend,prefer_recent_peaks,peak_broken,mado,acc,
+trend_rate,chiko,len_std,hara_rate,up_hige_rate,
+dw_hige_rate,reversed_cnt,momiai
+FROM
+zz_strtg_params as z
+JOIN trades as t on t.order_id = z.order_id
+where
+z.order_id like '%zzstrat_top1000vol_bothside'
+

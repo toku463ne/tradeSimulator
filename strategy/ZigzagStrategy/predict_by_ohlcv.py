@@ -12,7 +12,7 @@ import lib.naming as naming
 from db.pgdf import PgDf
 
 
-class RandomForest:
+class OhlcvPredictor:
     def __init__(self, granularity="D", n_candles=5, use_master=False):
         self.n_candles = n_candles
         self.tablename = naming.ohlcvTable(granularity)

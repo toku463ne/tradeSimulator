@@ -1,6 +1,9 @@
 import numpy as np
 
 
+import lib.indicators as ind
+
+
 # Check if the prices are in momiai form
 def _checkTrendRate(cl):
     u_cnt = 0
@@ -110,14 +113,14 @@ def checkLastCandle(ol, hl, ll, cl):
     if o <= 0 or h <= 0 or l <= 0 or c <= 0:
         return
         
-    last_len = float(h - l)
-    if last_len == 0:
+    leg_len = float(max(hl) - min(ll))
+    if leg_len == 0:
         return
 
-    hara_rate = float((c - o)/last_len)
+    hara_rate = float((c - o)/leg_len)
 
-    up_hige_rate = (h-max(c, o))/last_len
-    dw_hige_rate = (min(c, o)-l)/last_len
+    up_hige_rate = (h-max(c, o))/leg_len
+    dw_hige_rate = (min(c, o)-l)/leg_len
 
     return {
         "len_std": float(len_std),
@@ -141,3 +144,11 @@ def checkChiko(cl, chiko_span=26):
             u_cnt += 1
     
     return d_cnt/period, u_cnt/period
+
+def distFromAvg(prices):
+    prices = np.array(prices)
+    mean = prices.mean()
+    std = prices.std()
+    dists = (prices - mean) / std
+    return dists[-1], min(dists), max(dists)
+

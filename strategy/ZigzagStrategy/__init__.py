@@ -38,11 +38,12 @@ class ZigzagStrategy(Strategy):
         self.loss_rate = args.get("loss_rate", 0.015)
         self.codenames = args.get("codenames", [])
         self.exclude_codes = args.get("exclude_codes", [])
-        self.trade_mode = args.get("trade_mode", TRADE_MODE_ONLY_BUY)
+        self.trade_mode = args.get("trade_mode", TRADE_MODE_BOTH)
         self.use_master = args.get("use_master", True)
         self.chiko_span = args.get("chiko_span", 26)
         self.min_price = args.get("min_price", 1000)
         self.min_vols = args.get("min_vols", 100000)
+        self.debug_date = args.get("debug_date", None)
         #self.thresholds = args.get("thresholds", {
         #        "long_candle": True,
         #        "prefer_recent_peaks": False,
@@ -63,7 +64,7 @@ class ZigzagStrategy(Strategy):
         #        "chiko": 0.0,
         #        "reverse_cnt_limit": self.middle_size
         #    }
-        self.epiration_limit = args.get("epiration_limit", self.middle_size)
+        self.epiration_limit = args.get("epiration_limit", self.size)
         self.epiration_middle = args.get("epiration_middle", int(self.middle_size/2)+1)      
 
         # how many times to hold trade on the same peak position
@@ -158,7 +159,7 @@ WHERE
         if codename in self.skip_list:
             return
         
-        if lib.epoch2dt(epoch) >= datetime(2018, 1, 31):
+        if self.debug_date is not None and lib.epoch2dt(epoch) == self.debug_date:
             print("here")
 
         z = self.zztickers.get(codename, Zigzag({
@@ -180,18 +181,13 @@ WHERE
         if zz_dt is None or len(zz_dt) < 2:
             return
 
-        # skip if the price is less than the threshold
-        #if thresholds["price"] > 0 and zz_prices[-1] < thresholds["price"]:
-        #    return
-        #cond_vals["price"] = zz_prices[-1]
-
-        #peaks = sorted(list(zz_prices))
-        
         
         (_, _, _, h, l, c, v) = ticker.getPrice(epoch)
         if v < self.min_vols:
             return
         
+        if v == 0:
+            return
 
         (eps, dt, ol, hl, ll, cl, vl) = ticker.getData(n=middle_size+chiko_span)
         if dt is None:
@@ -211,10 +207,15 @@ WHERE
         #if (min_l != l and min_l != ll[-2]) and (max_h != h and max_h != hl[-2]):
         #    return
 
+        if len(zz_prices) < 3:
+            return
+
         last_dir = zz_dirs[-1]
         last_peak = zz_prices[-1]
         leg_len = abs(last_peak - zz_prices[-2])
-        diff = c * self.diff_rate
+        diff = min(c * self.diff_rate, 
+                   abs(zz_prices[-1]-zz_prices[-2])*0.1, 
+                   abs(zz_prices[-2]-zz_prices[-3])*0.1)
 
         tp_diff = c*self.profit_rate
         if tp_diff > leg_len/2:
@@ -280,76 +281,39 @@ WHERE
 
 
         
-        #if trend > 0 and zz_dirs[-1] < 0:
-        #    if max_h >= last_peak:
-        #        return
-        #if trend < 0 and zz_dirs[-1] > 0:
-        #    if min_l <= last_peak:
-        #        return
-
-        #peaks = []
-        #for i in range(len(zz_dirs)):
-        #    if i > 0:
-        #        if zz_dirs[i] > zz_dirs[i-1] and zz_prices[i] > zz_prices[i-1] or \
-        #            zz_dirs[i] < zz_dirs[i-1] and zz_prices[i] < zz_prices[i-1]: 
-        #            peaks.append(zz_prices[i])
-
-        reverse = False
-        if trend > 0:
-            reverse = True
-
-        if abs(zz_dirs[-1]) == 1:
-            peaks = sorted(list(zz_prices[:-1]), reverse=reverse)
+        if trend == -1:
+            peaks = sorted(zz_prices[-3:])
+            old_peaks = sorted(zz_prices[:-3])
         else:
-            peaks = sorted(list(zz_prices), reverse=reverse)
+            peaks = sorted(zz_prices[-3:], reverse=True)
+            old_peaks = sorted(zz_prices[:-3], reverse=True)
         
-        #base = 0
-        #if trend == 1:
-        #    base = max_h
-        #elif trend == -1:
-        #    base = min_l
-        #
-        #cnt = 0
-        #s = 0
-        #for peak in peaks:
-        #    if peak - diff <= base and peak + diff >= base:
-        #        cnt += 1
-        #        s += peak
-        #    elif peak - diff > base:
-        #        break
+        ma = max(peaks)
+        mi = min(peaks)
+        peaks.extend(old_peaks)
         
         trade_pos_key = 0
-        for peak in peaks:
-            if (peak + diff*trend)*trend < c*trend:
+        for i in range(len(peaks)):
+            peak = peaks[i]
+
+            # from the 3rd peak we only consider peaks above recent peaks
+            if i >= 3:
+                if peak >= mi and peak <= ma:
+                    continue
+
+            if c*trend > peak*trend:
+                if (peak + diff*trend)*trend > c*trend:
+                    trade_pos_key = peak
                 break
+            
             trade_pos_key = peak
 
-        
 
         if trade_pos_key == 0:
             return
 
         if abs(c - trade_pos_key) > tp_diff:
             return
-
-
-                    
-        #tp_diff = 0
-        #if trend == 1:
-        #    tp_diff = c - tp_below
-        #elif trend == -1:
-        #    tp_diff = tp_upper - c
-
-
-        # If there are already more than 2 closer peaks, current price could be the next peak
-        #if cnt == 0:
-        #    return
-
-        #trade_pos_key = int(s/cnt)
-
-        #diff2 = abs(c - trade_pos_key)*2
-        #if abs(c - trade_pos_key) > tp_diff/2:
-        #    return
 
 
         # check if some recent peaks touched the trade_pos_key
@@ -361,24 +325,19 @@ WHERE
                 reversed_cnt += 1
 
 
-        cond_vals["reversed_cnt"] = reversed_cnt
-
-        # If the peak is updated by the last peak, skip the peak
-        skip = False
-        for j in range(len(zz_prices)):
-            k = j+1
-            if zz_prices[-k]*trend > (c + diff*trend)*trend:
-                skip = True
-                break
-
-            if k >= 4:
-                break 
-
-        cond_vals["prefer_recent_peaks"] = skip
-
+        cond_vals["reversed_rate"] = (reversed_cnt*1.0 / size)
+      
 
         # if the peak is broken by the recent price
-        cond_vals["peak_broken"] = (min(ll[-size:]) < trade_pos_key-diff) and (max(hl[-size:]) > trade_pos_key+diff)
+        broken_cnt = 0
+        for i in range(1, size):
+            if (ll[-i-1] > trade_pos_key) and (ll[-i] < trade_pos_key-diff) or \
+               (hl[-i-1] < trade_pos_key) and (hl[-i] > trade_pos_key+diff) or \
+                (ll[-i] < trade_pos_key-diff) and (hl[-i] > trade_pos_key+diff):
+                broken_cnt += 1
+
+        cond_vals["peak_broken_rate"] = broken_cnt/(size)
+        #cond_vals["peak_broken"] = (min(ll[-size:]) < trade_pos_key-diff) and (max(hl[-size:]) > trade_pos_key+diff)
 
 
 
@@ -395,7 +354,7 @@ WHERE
         if has_trend and trend_rate*trend < 0:
             return
 
-        params = pa.checkLastCandle(ol[-middle_size:], hl[-middle_size:], ll[-middle_size:], cl[-middle_size:])
+        params = pa.checkLastCandle(ol[-size:], hl[-size:], ll[-size:], cl[-size:])
         if params is None:
             return
         len_std = params["len_std"]
@@ -409,10 +368,6 @@ WHERE
         cond_vals["up_hige_rate"] = up_hige_rate
         cond_vals["dw_hige_rate"] = dw_hige_rate
         cond_vals["len_avg"] = len_avg
-
-
-        res = len_std > 1.5 and abs(hara_rate) >= 0.7
-        cond_vals["long_candle"] = bool(res)
 
 
         cond_vals["chiko"] = 0
@@ -429,8 +384,15 @@ WHERE
 
         cond_vals["tp_diff"] = tp_diff
 
-        cond_vals["momiai"] = pa.checkMomiai(hl[-size:], ll[-size:])
+        cond_vals["momiai1"] = pa.checkMomiai(hl[-middle_size:], ll[-middle_size:], n_targets=1)
+        cond_vals["momiai2"] = pa.checkMomiai(hl[-size-1:-1], ll[-size-1:-1], n_targets=1)
 
+        last, mi, ma = pa.distFromAvg(cl[-size:])
+        cond_vals["avg_dist_last"] = last
+        cond_vals["avg_dist_max"] = ma
+        cond_vals["avg_dist_min"] = mi
+
+        
         return {
             "ticker": ticker,
             "price": price,
@@ -456,7 +418,17 @@ WHERE
         if len(target) == 0:
             return
         
-        target_side = -target["trend"]
+        target_side = 0
+        price = target["price"]
+        tp_diff = target["tp_diff"]
+        t = target["ticker"]
+        trade_pos_key = target["trade_pos_key"]
+        if price > trade_pos_key:
+            target_side = SIDE_BUY
+        if price < trade_pos_key:
+            target_side = SIDE_SELL
+
+        #target_side = -target["trend"]
         side = 0
         if target_side == SIDE_BUY and (trade_mode == TRADE_MODE_ONLY_BUY or trade_mode == TRADE_MODE_BOTH):
             side = SIDE_BUY
@@ -466,11 +438,7 @@ WHERE
         if side == 0:
             return
 
-        price = target["price"]
-        tp_diff = target["tp_diff"]
-        t = target["ticker"]
-        trade_pos_key = target["trade_pos_key"]
-
+        
         if trade_pos_key in trade_poses.keys():
             return
 
@@ -512,26 +480,29 @@ WHERE
     order_id, codename, EP, DT, price, 
     side, takeprofit_price, stoploss_price,
     trend, vol_rank, trade_pos_key,
-    tp_diff, prefer_recent_peaks, peak_broken, mado, acc,
+    tp_diff, peak_broken_rate, mado, acc,
     trend_rate, chiko,
     len_std, hara_rate, up_hige_rate, dw_hige_rate, len_avg, 
-    reversed_cnt, momiai
+    reversed_rate, momiai1, momiai2,
+    avg_dist_last, avg_dist_min, avg_dist_max
 )
 VALUES('%s', '%s', %d, '%s', %f, 
 %d, %f, %f,
 %d, %d, %d,
-%f, %d, %d, %f, %f,
+%f, %d, %f, %f,
 %f, %f,
 %f, %f, %f, %f, %f, 
-%d, %f);
+%d, %f, %f,
+%f, %f, %f);
 """ % (
     order_id, codename, epoch, dt, target["price"],
     order.side, order.takeprofit_price, order.stoploss_price, 
     target["trend"], rank, target["trade_pos_key"],
-    target["tp_diff"], con["prefer_recent_peaks"], con["peak_broken"], con["mado"], con["acc"],
+    target["tp_diff"], con["peak_broken_rate"], con["mado"], con["acc"],
     con["trend_rate"], con["chiko"],
     con["len_std"], con["hara_rate"], con["up_hige_rate"], con["dw_hige_rate"], con["len_avg"], 
-    con["reversed_cnt"], con["momiai"]
+    con["reversed_rate"], con["momiai1"], con["momiai2"],
+    con["avg_dist_last"], con["avg_dist_min"], con["avg_dist_max"]
 )
         try:
             self.maindb.execSql(sql)

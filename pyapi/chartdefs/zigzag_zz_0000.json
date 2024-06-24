@@ -1,5 +1,5 @@
 {
-    "codename": "5108.T",
+    "codename": "6479.T",
     "granularity": "D",
     "start_date": "2017-01-01",
     "end_date": "2024-01-01",
@@ -9,11 +9,15 @@
             "middle_size": 5,
             "type": "zigzag"
         },
+        "sma20": {
+            "span": 20,
+            "type": "sma"
+        },
         "sma100": {
             "span": 100,
             "type": "sma"
-        } 
+        }  
     },
-    "trade_name": "zzstrat_top1000vol"
+    "trade_name": "zzstrat_top1000vol_bothside2"
 }
       

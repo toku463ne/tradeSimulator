@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import math
 
 def sma(p, span=20):
@@ -6,6 +7,14 @@ def sma(p, span=20):
     x = np.convolve(v, np.ones(span), 'valid') / span
     date_start_index = span -1 
     return x.tolist(), date_start_index
+
+def smd(p, span=20):
+    v = np.array(p)
+    smd = []
+    for i in range(len(p)-span):
+        smd.append(v[i:i+span].std())
+    date_start_index = span -1 
+    return smd, date_start_index
 
 
 def zigzag(eps, dt, h, l, v, size=5, middle_size=2, peak_num=0):
@@ -151,3 +160,23 @@ def peaks(eps, dt, h, l, size=10):
         elif midl == min(l[i:i+size*2]):
             peaks.append({"ep": eps[midi], "dt": dt[midi], "side": -1, "index": midi, "price": midl})
     return peaks
+
+
+def covered_rate(hl, ll, cl, period=20):
+    covered = {}
+    for i in range(period-1, len(cl)):
+        cnt = 0
+        for j in range(i-period, i+1):
+            if hl[j] >= cl[i] and ll[j] <= cl[i]:
+                cnt += 1
+        covered[cl[i]] = (cnt*1.0/period)
+    
+    return covered
+
+
+def bollinger(prices, window=20):
+    df = pd.DataFrame(prices, columns=['Price'])
+    df['ma'] = df['Price'].rolling(window=window).mean()
+    df['std'] = df['Price'].rolling(window=window).std()
+    df['upper'] = df['MA'] + (df['STD'] * 2)
+    df['lower'] = df['MA'] - (df['STD'] * 2)

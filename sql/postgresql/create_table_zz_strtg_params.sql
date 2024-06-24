@@ -11,8 +11,7 @@ CREATE TABLE IF NOT EXISTS zz_strtg_params (
     vol_rank INT,
     trade_pos_key INT,
     tp_diff FLOAT,
-    prefer_recent_peaks INT,
-    peak_broken SMALLINT,
+    peak_broken_rate FLOAT,
     mado FLOAT,
     acc FLOAT,
     trend_rate FLOAT,
@@ -22,7 +21,11 @@ CREATE TABLE IF NOT EXISTS zz_strtg_params (
     up_hige_rate FLOAT,
     dw_hige_rate FLOAT,
     len_avg FLOAT,
-    reversed_cnt INT,
-    momiai FLOAT,
+    reversed_rate FLOAT,
+    momiai1 FLOAT,
+    momiai2 FLOAT,
+    avg_dist_last FLOAT,
+    avg_dist_max FLOAT,
+    avg_dist_min FLOAT,
     PRIMARY KEY (order_id)
 );
