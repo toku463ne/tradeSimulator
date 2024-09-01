@@ -69,6 +69,9 @@ python3 -m venv $appdir/.venv
 echo source $appdir/.venv/bin/activate
 source $appdir/.venv/bin/activate
 
+echo pip3 install --upgrade pip
+pip3 install --upgrade pip
+
 echo pip3 install -r install/pip/requirements.txt
 pip3 install -r install/pip/requirements.txt
 

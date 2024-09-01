@@ -23,6 +23,7 @@ import lib
 import lib.priceaction as pa
 from consts import *
 import env
+from analyze.zigzagStrategy.predictor import ZzCodePredictor
 
 class ZigzagStrategy(Strategy):
     def __init__(self, args):
@@ -34,7 +35,7 @@ class ZigzagStrategy(Strategy):
         self.n_targets = args.get("n_targets", 100)
         self.diff_rate = args.get("diff_percent", 0.01)
         self.max_fund = args.get("max_fund", 1000000)
-        self.profit_rate = args.get("profit_rate", 0.02)
+        self.profit_rate = args.get("profit_rate", 0.05)
         self.loss_rate = args.get("loss_rate", 0.015)
         self.codenames = args.get("codenames", [])
         self.exclude_codes = args.get("exclude_codes", [])
@@ -44,26 +45,10 @@ class ZigzagStrategy(Strategy):
         self.min_price = args.get("min_price", 1000)
         self.min_vols = args.get("min_vols", 100000)
         self.debug_date = args.get("debug_date", None)
-        #self.thresholds = args.get("thresholds", {
-        #        "long_candle": True,
-        #        "prefer_recent_peaks": False,
-        #        "mado": 0.002,
-        #        "trend_rate": 0.3,
-        #        "chiko": 0.0,
-         #       "reverse_cnt_limit": 0
-         #   })
-        self.trade_name = args.get("trade_name", "")
+        self.trade_name = args["trade_name"]
+        self.ref_trade_name = args.get("ref_trade_name", self.trade_name)
         self.skip_list = []
         self.analize_mode = args.get("analize_mode", False)
-        #if self.analize_mode:
-        #    self.thresholds = {
-        #        "long_candle": False,
-        #        "prefer_recent_peaks": False,
-        #        "mado": 0.0,
-        #        "trend_rate": 0.0,
-        #        "chiko": 0.0,
-        #        "reverse_cnt_limit": self.middle_size
-        #    }
         self.epiration_limit = args.get("epiration_limit", self.size)
         self.epiration_middle = args.get("epiration_middle", int(self.middle_size/2)+1)      
 
@@ -77,8 +62,12 @@ class ZigzagStrategy(Strategy):
         self.masterdb = PostgreSqlDB(is_master=self.use_master)
         self.maindb = PostgreSqlDB(is_master=False)
         self.maindb.createTable("zz_strtg_params")
+        self.maindb.createTable("zz_probas")
 
         self.maindb.execSql("delete from zz_strtg_params where order_id like '%%%s';" % self.trade_name)
+        self.maindb.execSql("delete from zz_probas where order_id like '%%%s';" % self.trade_name)
+
+        self.predictor = ZzCodePredictor(self.ref_trade_name)
 
         self.orders = {}
 
@@ -210,18 +199,19 @@ WHERE
         if len(zz_prices) < 3:
             return
 
+        tp_diff = c*self.profit_rate
+        
+        recent_range = (max(hl[-size:]) - min(ll[-size:]))*1.0
+        tp_diff = min(tp_diff, recent_range/2.0)
+        tp_diff2 = max(max(hl[-size:])-c,c-min(ll[-size:]))*1.0/2.0
+        tp_diff = min(tp_diff, tp_diff2)
+        
+
         last_dir = zz_dirs[-1]
         last_peak = zz_prices[-1]
-        leg_len = abs(last_peak - zz_prices[-2])
-        diff = min(c * self.diff_rate, 
-                   abs(zz_prices[-1]-zz_prices[-2])*0.1, 
-                   abs(zz_prices[-2]-zz_prices[-3])*0.1)
+        diff = min(c * self.diff_rate, recent_range*0.1)
 
-        tp_diff = c*self.profit_rate
-        if tp_diff > leg_len/2:
-            return
-
-
+        
 
         # check current trend
         trend = 0
@@ -336,7 +326,7 @@ WHERE
                 (ll[-i] < trade_pos_key-diff) and (hl[-i] > trade_pos_key+diff):
                 broken_cnt += 1
 
-        cond_vals["peak_broken_rate"] = broken_cnt/(size)
+        cond_vals["peak_broken_rate"] = broken_cnt*1.0/(size*1.0)
         #cond_vals["peak_broken"] = (min(ll[-size:]) < trade_pos_key-diff) and (max(hl[-size:]) > trade_pos_key+diff)
 
 
@@ -392,41 +382,42 @@ WHERE
         cond_vals["avg_dist_max"] = ma
         cond_vals["avg_dist_min"] = mi
 
+        side = 0
+        if price > trade_pos_key:
+            side = SIDE_BUY
+        if price < trade_pos_key:
+            side = SIDE_SELL
+        probas = self.predictor.predict_trade(codename, side, cond_vals)
+        
+        
+        #cond_vals["proba"] = proba
+        #cond_vals["accuracy"] = accuracy
+
         
         return {
+            "codename": codename,
             "ticker": ticker,
             "price": price,
+            "side": side,
             "tp_diff": tp_diff,
             "trade_pos_key": trade_pos_key,
             "trend": trend,
-            "cond_vals": cond_vals
+            "cond_vals": cond_vals,
+            "probas": probas
         }
             
-    def getOrder(self, codename, epoch, target, unitsecs):
+    def getOrder(self, epoch, target, unitsecs):
         trade_mode = self.trade_mode
-        trade_poses = self.trade_poses.get(codename, {})
-        trade_hold_cnt = self.trade_hold_cnt
-        # update trade pos
-        trade_pos_keys = trade_poses.keys()
-        for trade_pos_key in trade_pos_keys:
-            cnt = trade_poses[trade_pos_key]
-            cnt += 1
-            if cnt > trade_hold_cnt:
-                del trade_poses[trade_pos_key]
-
-
-        if len(target) == 0:
-            return
         
-        target_side = 0
+        if len(target) == 0:
+            return None, None
+        
         price = target["price"]
         tp_diff = target["tp_diff"]
         t = target["ticker"]
         trade_pos_key = target["trade_pos_key"]
-        if price > trade_pos_key:
-            target_side = SIDE_BUY
-        if price < trade_pos_key:
-            target_side = SIDE_SELL
+        target_side = target["side"]
+
 
         #target_side = -target["trend"]
         side = 0
@@ -436,20 +427,13 @@ WHERE
             side = SIDE_SELL
 
         if side == 0:
-            return
-
+            return None, None
         
-        if trade_pos_key in trade_poses.keys():
-            return
 
         takeprofit = 0
         stoploss = 0
         units = self.max_fund/price
-        #if tp_diff * units < self.min_profit:
-        #    return
 
-        #takeprofit = price + tp_diff*side
-        #stoploss = price - tp_diff*side
         stoploss = float(trade_pos_key) - tp_diff*side
         diff = abs(price - stoploss)
         takeprofit = price + diff*side
@@ -461,15 +445,22 @@ WHERE
             validep=0, takeprofit=takeprofit, stoploss=stoploss, order_expiration=order_expiration,
             desc="op:%f line:%d diff:%f tp:%f" % (price, trade_pos_key, diff, tp_diff), args=target["cond_vals"])
         
-        #v = target["cond_vals"]
-        #print("%s prefer_recent_peaks=%d mado=%d trend_rate=%d chiko=%f" % (
-        #    codename, v["prefer_recent_peaks"], v["mado"], v["trend_rate"], v["chiko"]
-        #))
 
-        trade_poses[trade_pos_key] = 1
-        self.trade_poses[codename] = trade_poses
+        return order, trade_pos_key
+    
+    def insertProba(self, order_id, probas):
+        sql = """INSERT INTO zz_probas(
+order_id, 
+proba_all, proba_group, proba_kobetsu)
+VALUES('%s', %f, %f, %f)
+;""" % (order_id, 
+        probas["all"], probas["group"], probas["kobetsu"])
 
-        return order
+        try:
+            self.maindb.execSql(sql)
+        except Exception as e:
+            print(e)
+
 
     # codename, epoch, dt, i+1, target
     def insertTradeInfo(self, order_id, codename, epoch, dt, rank, target, order):
@@ -489,12 +480,12 @@ WHERE
 VALUES('%s', '%s', %d, '%s', %f, 
 %d, %f, %f,
 %d, %d, %d,
-%f, %d, %f, %f,
+%f, %f, %f, %f,
 %f, %f,
 %f, %f, %f, %f, %f, 
 %d, %f, %f,
-%f, %f, %f);
-""" % (
+%f, %f, %f)
+;""" % (
     order_id, codename, epoch, dt, target["price"],
     order.side, order.takeprofit_price, order.stoploss_price, 
     target["trend"], rank, target["trade_pos_key"],
@@ -510,41 +501,6 @@ VALUES('%s', '%s', %d, '%s', %f,
             print(e)
 
     
-    def __onTickSingle(self, epoch):
-        granularity = granularity = self.timeTicker.granularity
-        unitsecs = tradelib.getUnitSecs(granularity)
-        if self.ticker == None:
-            self.ticker = Ticker({
-                "codename": self.ticker_codename, 
-                "granularity": self.timeTicker.granularity, 
-                "startep": epoch,
-                "endep": self.timeTicker.endep,
-                "use_master": self.use_master
-                })
-        
-        if self.ticker.tick(epoch) == False:
-            return []
-        
-        
-        (ep, dt, _, _, _, _, _) = self.ticker.getPrice(epoch)
-        if ep == 0:
-            return []
-        
-        codes = self.getTargetCodes(ep)
-        orders = []
-        #for codename in codes:
-        for i in range(len(codes)):
-            codename = codes[i]
-            target = self.checkCode(codename, ep, unitsecs)
-            if target is not None:
-                order = self.getOrder(codename, ep, target)
-                if order is not None:
-                    local_order_id = order.localId
-                    if self.analize_mode:
-                        self.insertTradeInfo(local_order_id, codename, epoch, dt, i+1, target)
-                    orders.append(order)
-    
-        return orders
     
     def createOrders(self, epoch):
         granularity = self.timeTicker.granularity
@@ -568,25 +524,26 @@ VALUES('%s', '%s', %d, '%s', %f,
         codes = self.getTargetCodes(ep)
         orders = []
 
-        def process_code(codename, ticker):
+        def process_checkcode(codename, ticker):
             target = self.checkCode(codename, ep, unitsecs, ticker, config_path=env.config_path)
-            if target is not None:
-                order = self.getOrder(codename, ep, target, unitsecs)
-                if order is not None:
-                    local_order_id = order.localId
-                    if self.analize_mode:
-                        self.insertTradeInfo(local_order_id, codename, epoch, dt, codes.index(codename) + 1, target, order)
-                    return order
-            return None
+            return target
+
+        def process_order(target):
+            order, trade_pos_key = self.getOrder(ep, target, unitsecs)
+            if order is not None:
+                local_order_id = order.localId
+                if self.analize_mode:
+                    self.insertTradeInfo(local_order_id, codename, epoch, dt, codes.index(codename) + 1, target, order)
+                    self.insertProba(local_order_id, target["probas"])
+                return order, trade_pos_key
+            return None, None
 
         i = 0
+        targets = []
         while True:
             code_group = codes[i:i+MAX_THREADS]
             with ThreadPoolExecutor(max_workers=len(code_group)) as executor:
-                #futures = {executor.submit(process_code, codename): codename for codename in code_group}
                 futures = []
-                #if epoch == 1523836800:
-                #    print(lib.epoch2dt(1523836800))
                 for codename in code_group:
                     if codename in self.codetickers.keys():
                         ticker = self.codetickers[codename]
@@ -602,20 +559,51 @@ VALUES('%s', '%s', %d, '%s', %f,
                         })
                         self.codetickers[codename] = ticker
                     
-                    futures.append(executor.submit(process_code, codename, ticker))
+                    futures.append(executor.submit(process_checkcode, codename, ticker))
 
                 for future in as_completed(futures):
-                    result = future.result()
-                    if result is not None:
-                        orders.append(result)
+                    target = future.result()
+                    if target is not None:
+                        targets.append(target)
             i += MAX_THREADS
             if i >= len(codes):
                 break
-            #time.sleep(1)
-            
         
+        if len(targets) == 0:
+            return []
+        
+        with ThreadPoolExecutor(max_workers=len(targets)) as executor:
+            futures = []
+            for target in targets:
+                if self.tradePosExists(target["codename"], target["side"], target["trade_pos_key"]):
+                    continue
+                futures.append(executor.submit(process_order, target))
+            
+            for future in as_completed(futures):
+                order, trade_pos_key = future.result()
+                if order is not None:
+                    self.updateTradePosCnt(order.codename, order.side, trade_pos_key)
+                    orders.append(order)
+
         return orders
 
+
+    def tradePosExists(self, codename, side, trade_pos_key):
+        trade_poses = self.trade_poses.get(codename, {})
+        if (side, trade_pos_key) in trade_poses.keys():
+            return True
+        return False
+
+
+    def updateTradePosCnt(self, codename, side, trade_pos_key):
+        trade_poses = self.trade_poses.get(codename, {})
+        cnt = trade_poses.get((side, trade_pos_key), 0)
+        cnt += 1
+        trade_poses[(side, trade_pos_key)] = cnt
+        self.trade_poses[codename] = trade_poses
+        return cnt
+    
+    
 
     def checkTrade(self, epoch, order_id):
         order = self.orders[order_id]
@@ -645,6 +633,18 @@ VALUES('%s', '%s', %d, '%s', %f,
 
 
     def onTick(self, epoch):
+        codenames = list(self.trade_poses.keys())
+        for codename in codenames:
+            trade_poses = self.trade_poses[codename]
+            trade_pos_keys = list(trade_poses.keys())
+            for k in trade_pos_keys:
+                cnt = trade_poses[k]
+                cnt += 1
+                if cnt > self.trade_hold_cnt:
+                    del trade_poses[k]
+                else:
+                    self.trade_poses[codename][k] = cnt
+
         orders = []
         for order_id in list(self.orders.keys()):
             order_inf = self.orders[order_id]
@@ -676,7 +676,7 @@ if __name__ == "__main__":
     from executor import Executor
     from trade_manager import TradeManager
     from portforio import Portoforio
-    st = lib.str2epoch("2018-01-01T00:00:00")
+    st = lib.str2epoch("2023-01-01T00:00:00")
     ed = lib.str2epoch("2024-01-01T00:00:00")
     os = lib.str2epoch("2024-01-01T00:00:00")
     
@@ -697,7 +697,8 @@ if __name__ == "__main__":
         "use_master": True,
         "analize_mode": True,
         "n_targets": 100,
-        "trade_name": "zzanal3"}
+        "trade_name": "zzstrat_top3000vol2023",
+        "ref_trade_name": "zzstrat_top3000vol",}
     strategy = ZigzagStrategy(args)
     ticker = TimeTicker("D", st, ed)
     executor = Executor()

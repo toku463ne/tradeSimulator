@@ -19,3 +19,4 @@ Jupyter
 jupyterlab
 psycopg2
 xgboost
+seaborn
